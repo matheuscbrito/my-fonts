@@ -11,18 +11,15 @@ from .params import (ARCH_THIN, BRACKET, CAP_BRACKET, CAP_SERIF, CAP_SERIF_TIP,
 
 def foot_serif(x0, x1, y=0, reach=SERIF, tip=SERIF_TIP, bracket=BRACKET,
                left=True, right=True):
-    """Flared wedge serif sitting on y, for a stem spanning x0..x1. The flanks
-    run almost straight at the pen angle, like a broad-nib pen lifting off."""
-    rise = bracket - tip
+    """Triangular wedge serif sitting on y, for a stem spanning x0..x1: flat
+    underneath, its flanks straight lines from the stem down to a fine tip."""
     c = [(x0, y + bracket)]
     if left:
-        c += [((x0 - reach * 0.33, y + tip + rise * 0.62), (x0 - reach * 0.66, y + tip + rise * 0.28), (x0 - reach, y + tip)),
-              (x0 - reach, y)]
+        c += [(x0 - reach, y + tip), (x0 - reach, y)]
     else:
         c += [(x0, y)]
     if right:
-        c += [(x1 + reach, y), (x1 + reach, y + tip),
-              ((x1 + reach * 0.66, y + tip + rise * 0.28), (x1 + reach * 0.33, y + tip + rise * 0.62), (x1, y + bracket))]
+        c += [(x1 + reach, y), (x1 + reach, y + tip), (x1, y + bracket)]
     else:
         c += [(x1, y), (x1, y + bracket)]
     return contour(*c)
@@ -32,33 +29,23 @@ def spur(x0, x1, y=0, reach=SERIF * 0.7):
     """Stem ending cut on the nib diagonal: the bottom edge slopes down to a
     sharp point past the right side. Stems using it start at y + 60."""
     return contour(
-        (x0, y + 52),
-        ((x0 + (x1 - x0) * 0.5, y + 24), (x1 + reach * 0.5, y + 3), (x1 + reach, y)),
-        (x1 + reach, y + 5),
-        ((x1 + reach * 0.5, y + 12), (x1, y + 30), (x1, y + 74)),
-        (x0, y + 74),
+        (x0, y + 52), (x1 + reach, y), (x1 + reach, y + 4), (x1, y + 36), (x1, y + 74), (x0, y + 74),
     )
 
 
 def nib_dot(cx, cy, size):
-    """A broad-nib dab for i and punctuation: a box whose top and bottom are
-    sheared along the pen angle."""
-    w, h = size * 0.9, size * 1.15
-    d = w * math.tan(PEN)
-    return contour(
-        (cx - w / 2, cy - h / 2),
-        (cx + w / 2, cy - h / 2 + d),
-        (cx + w / 2, cy + h / 2),
-        (cx - w / 2, cy + h / 2 - d),
-    )
+    """A square dot for i, j and punctuation."""
+    h = size * 0.92
+    return contour((cx - h / 2, cy - h / 2), (cx + h / 2, cy - h / 2),
+                   (cx + h / 2, cy + h / 2), (cx - h / 2, cy + h / 2))
 
 
 def pen_bar(x0, x1, y, t, pivot=None, angle=PEN, flare=(BAR_FLARE, BAR_TIP),
             flare_len=BAR_FLARE_LEN, ext=(0, 0)):
     """A crossbar of vertical thickness t, rising to the right at the pen
     angle. Its bottom edge passes through y at x = pivot (default: middle).
-    Like the l's head wedge, the top edge runs straight while the underside
-    swells toward the ends: flare = (left, right) extra thickness, reached
+    The top edge runs straight while the underside tapers in straight lines
+    toward the ends: flare = (left, right) extra thickness, reached
     over flare_len. ext = (left, right) continues the bar at full flare past
     x0/x1, to bury it in a stem or bowl."""
     pivot = (x0 + x1) / 2 if pivot is None else pivot
@@ -74,9 +61,9 @@ def pen_bar(x0, x1, y, t, pivot=None, angle=PEN, flare=(BAR_FLARE, BAR_TIP),
     return contour(
         (x0 - e0, yb(x0 - e0) - f0),
         (x0, yb(x0) - f0),
-        ((x0 + flare_len * 0.18, yb(x0 + flare_len * 0.18) - f0 * 0.4), (x0 + flare_len * 0.5, yb(x0 + flare_len * 0.5)), (a, yb(a))),
+        (a, yb(a)),
         (b, yb(b)),
-        ((x1 - flare_len * 0.5, yb(x1 - flare_len * 0.5)), (x1 - flare_len * 0.18, yb(x1 - flare_len * 0.18) - f1 * 0.4), (x1, yb(x1) - f1)),
+        (x1, yb(x1) - f1),
         (x1 + e1, yb(x1 + e1) - f1),
         (x1 + e1, yb(x1 + e1) + t),
         (x0 - e0, yb(x0 - e0) + t),
@@ -95,14 +82,9 @@ def head_serif(x0, x1, top, reach=HEAD, slope=HEAD_SLOPE, tip=SERIF_TIP):
     """Diagonal wedge pointing left, the lowercase entry stroke, cut at the
     nib angle from the stem's top-right corner down to a sharp tip."""
     yt = top - slope - tip
-    span = x1 - x0 + reach
     return contour(
-        (x1, top),
-        ((x1 - span * 0.35, top - slope * 0.30), (x0 - reach * 0.6, top - slope * 0.82), (x0 - reach, top - slope)),
-        (x0 - reach, yt),
-        ((x0 - reach * 0.55, yt - 12), (x0 - 8, yt - 40), (x0, yt - 72)),
-        (x0, top - 240),
-        (x1, top - 240),
+        (x1, top), (x0 - reach, top - slope), (x0 - reach, yt), (x0, yt - 44),
+        (x0, top - 240), (x1, top - 240),
     )
 
 
@@ -383,7 +365,7 @@ def flared_diag(top, bottom, w, flare):
 def flared_stroke(p0, p1, w, flare0=0, flare1=0, flare_len=210):
     """A straight thin stroke between two centre points, w wide measured
     horizontally, with horizontal ends. Like the crossbars, it runs straight
-    and then swells toward an end: flare0 / flare1 is the extra width at
+    and then widens in a straight taper toward an end: flare0 / flare1 is the extra width at
     p0 / p1 (split evenly on both sides), reached over flare_len measured
     along y."""
     (x0, y0), (x1, y1) = p0, p1
@@ -395,20 +377,10 @@ def flared_stroke(p0, p1, w, flare0=0, flare1=0, flare_len=210):
     def side(sign):
         h = sign * w / 2
         f0, f1 = sign * flare0 / 2, sign * flare1 / 2
-        return [
-            c(0, h + f0),
-            (c(a * 0.18, h + f0 * 0.4), c(a * 0.5, h), c(a, h)),
-            c(1 - a, h),
-            (c(1 - a * 0.5, h), c(1 - a * 0.18, h + f1 * 0.4), c(1, h + f1)),
-        ]
+        return [c(0, h + f0), c(a, h), c(1 - a, h), c(1, h + f1)]
 
     left, right = side(-1), side(1)
-    # right side runs back from p1 to p0
-    back = [right[3][2],
-            (right[3][1], right[3][0], right[2]),
-            right[1][2],
-            (right[1][1], right[1][0], right[0])]
-    return contour(*left, *back)
+    return contour(*left, *reversed(right))
 
 
 def intersect(p1, p2, p3, p4):

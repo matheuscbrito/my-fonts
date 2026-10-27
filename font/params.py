@@ -7,7 +7,7 @@ import math
 
 FAMILY = "Senna Display"  # the typeface name, rename any time
 STYLE = "Regular"
-VERSION = "0.3"
+VERSION = "0.4"
 UPM = 1000
 
 # Vertical metrics
@@ -18,21 +18,21 @@ DESC = -230
 OV = 11            # overshoot of round lowercase shapes
 CAP_OV = 13        # overshoot of round capitals
 
-# Stroke contrast: heavy stems against needle-thin hairlines
+# Stroke contrast: heavy stems against needle-thin hairlines, very high
 STEM = 106         # lowercase vertical stem
 CAP_STEM = 114     # capital vertical stem
-HAIR = 11          # lowercase hairline (serif tips and fine details)
-CAP_HAIR = 13      # capital hairline
+HAIR = 9           # lowercase hairline (serif tips and fine details)
+CAP_HAIR = 10      # capital hairline
 # The thin strokes that carry a letter, kept even across the alphabet
-THIN = 18          # lowercase bars, links, ears, arches and bowls
-CAP_THIN = 19      # capital crossbars and the thinnest points of capital bowls
+THIN = 11          # lowercase bars, links, ears, arches and bowls
+CAP_THIN = 12      # capital crossbars and the thinnest points of capital bowls
 # Curves are drawn heavier than stems, as in the a's bowl, so they read as
 # equally dark; their thinnest points and crossbars are a touch firmer than
 # THIN, since a long hairline reads lighter than a short one.
 ROUND = round(STEM * 1.12)          # widest point of lowercase curves (119)
 CAP_ROUND = round(CAP_STEM * 1.1)   # widest point of capital curves (125)
-BAR_THIN = THIN + 6                 # lowercase crossbars (e, t, f, z)
-CAP_BAR_THIN = CAP_THIN + 5         # capital crossbars and arms
+BAR_THIN = THIN + 3                 # lowercase crossbars (e, t, f, z)
+CAP_BAR_THIN = CAP_THIN + 3         # capital crossbars and arms
 
 # Serifs (flared diagonal wedges, cut like a broad-nib pen)
 HEAD = 92          # lowercase head serif reach to the left

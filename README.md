@@ -1,9 +1,9 @@
 # Senna Display
 
 A personal display serif for headlines, defined entirely in code. The feel
-(high contrast, sharp bracketed wedge serifs, large x-height, tight spacing) is
-inspired by the headline faces on sites like tako.ai, but every outline here
-is original.
+(very high contrast, hard straight-edged wedge serifs, large x-height, tight
+spacing) is inspired by geometric display serifs like the headline faces on
+tako.ai, but every outline here is original.
 
 ## Layout
 
@@ -36,7 +36,7 @@ Then open http://127.0.0.1:8765/specimen/.
 h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; }
 ```
 
-## Current glyph set (v0.3)
+## Current glyph set (v0.4)
 
 - Lowercase: the full alphabet, `a` to `z`.
 - Capitals: the full alphabet, `A` to `Z`.
@@ -46,12 +46,16 @@ Curves are built from true ellipses: rings (an ellipse minus a counter),
 ellipses run off along straight pen-angle tangents into stems, and bowls
 joined by straight spines tangent to both (s, S). Stroke ends are cut on the
 shared pen angle (`PEN`) or thicken into blunt, flat-faced ends whose feet
-are cut on the pen angle (a, c, f, g, j, s, C, G, J, S). Crossbars rise at the pen angle and flare at
-their ends.
+are cut on the pen angle (a, c, f, g, j, s, C, G, J, S). Crossbars rise at
+the pen angle and widen toward their ends.
+
+Everything that is not a bowl is drawn in straight lines: serifs are
+triangular wedges, stem heads are straight diagonal cuts, flares are straight
+tapers and dots are squares. Curves appear only where a letter is round.
 
 The a is the model for the weights in `params.py`. Curves run heavier than
 stems so they read equally dark: `ROUND` (119) for lowercase, `CAP_ROUND`
-(125) for capitals. Thin strokes are `THIN` (18) and `CAP_THIN` (19), with
+(125) for capitals. Thin strokes are `THIN` (11) and `CAP_THIN` (12), with
 bowls a little firmer (`O_THIN`) and crossbars and arms firmer still
 (`BAR_THIN`, `CAP_BAR_THIN`), since a long hairline reads lighter than a short
 one. Change any of them to shift that part of the whole alphabet.

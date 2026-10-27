@@ -360,7 +360,7 @@ def g():
 # ------------------------------------------------- lowercase: straight diagonals
 
 DIAG = STEM * 1.1     # thick diagonal, measured horizontally
-DIAG_HAIR = HAIR * 2 + 6  # thin diagonal
+DIAG_HAIR = HAIR + 8      # thin diagonal
 FLARE = 40                # thin diagonals swell by this much into their serifs
 FLARE_LEN = 150           # over this much of their height (scaled up for capitals)
 
@@ -507,13 +507,9 @@ def _cap_stem(x0, head_left=True, head_right=True, foot_left=True, foot_right=Tr
 
 
 def arm_serif(xe, y, t, h, tip=CAP_SERIF_TIP + 2, bracket=120):
-    """Vertical wedge at the right end of a horizontal arm whose bottom edge
-    is at y and thickness t; it rises to y + h."""
-    return contour(
-        (xe, y), (xe, y + h), (xe - tip, y + h),
-        ((xe - tip - 10, y + t + (h - t) * 0.45), (xe - bracket * 0.7, y + t + 4), (xe - bracket, y + t)),
-        (xe - bracket, y),
-    )
+    """Triangular wedge at the right end of a horizontal arm whose bottom
+    edge is at y and thickness t; it rises to y + h."""
+    return contour((xe, y), (xe, y + h), (xe - tip, y + h), (xe - bracket, y + t), (xe - bracket, y))
 
 
 ARM = CAP_BAR_THIN  # horizontal arms of E F L T Z
@@ -588,7 +584,7 @@ def O():
 
 
 CAP_DIAG = CAP_STEM * 1.12      # thick capital diagonal, measured horizontally
-CAP_THIN_STEM = CAP_HAIR * 2 + 4  # thin capital stems and diagonals
+CAP_THIN_STEM = CAP_HAIR + 8      # thin capital stems and diagonals
 CAP_BOWL_THIN = CAP_THIN + 3      # thinnest point of capital bowls
 CAP_FLARE = 50                    # thin capital strokes swell by this much into their serifs
 

@@ -850,8 +850,8 @@ def Q():
     # and pressing down to the right, ending on a face cut on the pen angle.
     cx = rx
     k = math.tan(PEN)
-    x_end, y_end, face = cx + rx + 60, -170, 70
-    tail = contour((cx - 30, 30), (cx - 8, 30),
+    x_end, y_end, face = cx + rx - 10, -130, 96
+    tail = contour((cx - 40, 34), (cx - 2, 34),
                    (x_end + face, y_end + face * k), (x_end, y_end))
     return o.add(tail)
 

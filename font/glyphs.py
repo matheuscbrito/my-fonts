@@ -983,20 +983,46 @@ def one():
     )
 
 
+def _touch(cx, cy, rx, ry, Q, pick):
+    """A point where a straight line from Q touches the ellipse; of the two
+    tangents, the one whose touch point scores highest under pick."""
+    def f(t):
+        return ((cx + rx * math.cos(t) - Q[0]) * ry * math.cos(t)
+                + (cy + ry * math.sin(t) - Q[1]) * rx * math.sin(t))
+
+    points, n = [], 720
+    for i in range(n):
+        a, b = -math.pi + 2 * math.pi * i / n, -math.pi + 2 * math.pi * (i + 1) / n
+        if f(a) * f(b) <= 0:
+            for _ in range(40):
+                m = (a + b) / 2
+                a, b = (a, m) if f(a) * f(m) <= 0 else (m, b)
+            points.append((cx + rx * math.cos(a), cy + ry * math.sin(a)))
+    return max(points, key=pick)
+
+
 @glyph("two", 0x32, CAP_SB_ROUND, CAP_SB_STRAIGHT)
 def two():
     w = 470
     rx, ry = w / 2 - 20, 190
     cx, cy = w / 2, CAP + CAP_OV - ry
+    heavy, light = CAP_ROUND, 52
+    rxi, dxi, ryi = rx - (heavy + light) / 2, (light - heavy) / 2, ry - CAP_BOWL_THIN
+    outer = ellipse(cx, cy, rx, ry)
+    counter = ellipse(cx + dxi, cy, rxi, ryi)
     # Upper bowl: heavy on the right, ending on the left in a wedge.
-    top = _hook_ring(cx, cy, rx, ry, CAP_ROUND, 52, "right")
-    top.clip(rect(cx - rx - 10, cy, cx + rx + 10, CAP + 100))
+    top = Glyph().add(outer).cut(counter).clip(rect(cx - rx - 10, cy, cx + rx + 10, CAP + 100))
     _tear_end(top, cx, cy, rx, ry, cy + 20, 50, "top_left")
-    # The right side runs on into a diagonal written down to the base,
-    # pressing harder as it goes.
-    x_in = cx + rx - CAP_ROUND
-    spine = contour((x_in, cy), (cx + rx, cy), (CAP_DIAG * DIAG_TAPER[1], FIG_BAR), (0, FIG_BAR))
-    return Glyph().add(top, spine, rect(0, 0, w, FIG_BAR), arm_serif(w, 0, FIG_BAR, 150))
+    # The diagonal, written down to the base and pressing harder as it goes:
+    # its edges are tangents to the bowl and the counter, so the curve runs
+    # straight on into it.
+    q_in, q_out = (0, FIG_BAR), (CAP_DIAG * DIAG_TAPER[1], FIG_BAR)
+    t_out = _touch(cx, cy, rx, ry, q_out, lambda p: p[0])
+    t_in = _touch(cx + dxi, cy, rxi, ryi, q_in, lambda p: p[0])
+    l_in = (q_in[0] + (t_in[0] - q_in[0]) * (cy - q_in[1]) / (t_in[1] - q_in[1]), cy)
+    keep = contour(q_in, q_out, t_out, (cx + rx + 10, t_out[1]), (cx + rx + 10, cy), l_in)
+    low = Glyph().add(outer, contour(q_in, q_out, t_out, t_in)).cut(counter).clip(keep)
+    return Glyph().add(top, low, rect(0, 0, w, FIG_BAR), arm_serif(w, 0, FIG_BAR, 150))
 
 
 def _lower_bowl(w, rx, ry, heavy=CAP_ROUND, keep_from=None):
@@ -1012,21 +1038,22 @@ def _lower_bowl(w, rx, ry, heavy=CAP_ROUND, keep_from=None):
 
 @glyph("three", 0x33, CAP_SB_ROUND, CAP_SB_ROUND)
 def three():
+    # A flat top like the 7's, a diagonal written down from its right end,
+    # and the open lower bowl. The diagonal is cut by the bowl's counter, so
+    # where it joins the bowl the waist comes to a sharp point.
     w = 460
-    lower, cxl, cyl = _lower_bowl(w, 225, 182)
-    waist = cyl + 182  # top of the lower bowl
-    rxu = 196
-    ryu = (CAP + CAP_OV - (waist - CAP_BOWL_THIN)) / 2
-    cxu, cyu = w - 12 - rxu, CAP + CAP_OV - ryu
-    upper = _hook_ring(cxu, cyu, rxu, ryu, CAP_ROUND * 0.9, 48, "right")
-    upper.clip(Glyph().add(rect(cxu - 40, -100, w + 10, CAP + 100), rect(cxu - rxu - 10, cyu, cxu + 10, CAP + 100)))
-    _tear_end(upper, cxu, cyu, rxu, ryu, cyu + 10, 46, "top_left")
-    # Where the bowls meet, a pointed tongue reaches left, sharp like the
-    # crossbars' tips.
-    xw = min(cxl, cxu) - 30
-    ym = waist - CAP_BOWL_THIN / 2
-    tongue = contour((xw + 20, ym + 22), (xw - 52, ym), (xw + 20, ym - 26))
-    return Glyph().add(lower, upper, tongue)
+    rxl, ryl = 225, 196
+    lower, cxl, cyl = _lower_bowl(w, rxl, ryl)
+    waist = cyl + ryl
+    xr = w - 30
+    wt, wb = CAP_DIAG * 0.72, CAP_DIAG * 1.02
+    diag_ = Glyph().add(taper_diag((xr - wt / 2, CAP - FIG_BAR), (cxl - 70, waist - 70), wt, wb))
+    full = _hook_ring(cxl, cyl, rxl, ryl, CAP_ROUND, 52, "right")
+    counter = Glyph().add(ellipse(cxl, cyl, rxl - 1, ryl - 1)).cut(full)
+    diag_.cut(counter).clip(Glyph().add(ellipse(cxl, cyl, rxl, ryl), rect(-100, waist - 8, w + 100, CAP)))
+    bar = rect(40, CAP - FIG_BAR, xr, CAP)
+    left = arm_serif(xr, 0, FIG_BAR, 120).mirror_y(CAP / 2).mirror_x((40 + xr) / 2)
+    return Glyph().add(lower, diag_, bar, left)
 
 
 @glyph("four", 0x34, CAP_SB_STRAIGHT - 10, CAP_SB_STRAIGHT)
@@ -1039,8 +1066,12 @@ def four():
     # the bar starts there as a hairline and ends past the stem in a tip.
     hw = CAP_THIN_STEM * 1.4
     hair = flared_stroke((hw / 2, yb), (x0 + hw / 2, CAP), hw)
-    bar = pen_bar(0, x1 + 60, yb, FIG_BAR, angle=0, flare=(0, BAR_TIP * 0.6), flare_len=110)
-    return Glyph().add(hair, bar, rect(x0, 0, x1, CAP), cap_foot(x0, x1))
+    bar = pen_bar(0, x1 + 40, yb, FIG_BAR, angle=0, flare=(0, BAR_TIP * 0.45), flare_len=90)
+    # The stem's top is cut on the pen angle, highest where the hairline
+    # arrives, so the two meet in a sharp apex.
+    k = math.tan(PEN)
+    stem = contour((x0, CAP), (x1, CAP - CAP_STEM * k), (x1, 0), (x0, 0))
+    return Glyph().add(hair, bar, stem, cap_foot(x0, x1))
 
 
 @glyph("five", 0x35, CAP_SB_ROUND, CAP_SB_ROUND)
@@ -1049,10 +1080,15 @@ def five():
     rx, ry = 225, 196
     xn = w - 2 * rx + rx * 0.22  # the neck's left edge
     nw = CAP_STEM * 0.8          # a vertical, so it keeps one weight
-    lower, cx, cy = _lower_bowl(w, rx, ry, keep_from=xn + 10)
-    # The neck runs from the top bar straight down into the bowl's shoulder.
-    y_join = cy + ry * math.sqrt(1 - ((xn + nw - cx) / rx) ** 2) - 80
-    neck = rect(xn, y_join, xn + nw, CAP)
+    lower, cx, cy = _lower_bowl(w, rx, ry, keep_from=xn)
+    # The neck runs from the top bar straight down and sits on the bowl's
+    # shoulder, its foot following the bowl's outer edge.
+
+    def y_out(x):
+        return cy + ry * math.sqrt(max(0, 1 - ((x - cx) / rx) ** 2)) - 3
+
+    neck = contour((xn, y_out(xn)), (xn + nw / 2, y_out(xn + nw / 2)), (xn + nw, y_out(xn + nw)),
+                   (xn + nw, CAP), (xn, CAP))
     bar = Glyph().add(rect(xn, CAP - FIG_BAR, w - 10, CAP), arm_serif(w - 10, 0, FIG_BAR, 130).mirror_y(CAP / 2))
     return Glyph().add(lower, neck, bar)
 
@@ -1095,9 +1131,9 @@ def _six():
     # with the bowl's so the edge runs on, and ends at the top right in a
     # wedge.
     ry = CAP + CAP_OV - cyb
-    arc = _hook_ring(cx, cyb, rx, ry, CAP_ROUND * 0.95 - 8, 46, "left")  # inside the bowl's side
+    arc = _hook_ring(cx, cyb, rx, ry, CAP_ROUND * 0.95 - 12, 40, "left")  # inside the bowl's side
     arc.clip(rect(cx - rx - 10, cyb, cx + rx + 10, CAP + 100))
-    yt = cyb + ry * 0.72
+    yt = cyb + ry * 0.6
     arc.cut(rect(cx + 20, cyb - 10, cx + rx + 10, yt))
     _tear_end(arc, cx, cyb, rx, ry, yt, 50, cut=False)
     g = Glyph().add(bowl_, arc)

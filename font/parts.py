@@ -275,6 +275,44 @@ def nib_stroke(segments, width=STEM, height=HAIR, angle=0, taper=(0, 0), samples
     return g
 
 
+def _bezier_tangent(p0, c1, c2, p3, t):
+    mt = 1 - t
+    return tuple(3 * mt * mt * (b - a) + 6 * mt * t * (d - b) + 3 * t * t * (e - d)
+                 for a, b, d, e in zip(p0, c1, c2, p3))
+
+
+def var_stroke(segments, widths, samples=48):
+    """A stroke along a chain of cubic segments whose thickness is set by
+    hand: widths[i] is the thickness at the start of segment i, and the last
+    entry at the end of the chain. Thickness eases between knots, so arcs can
+    go to hairline while a spine swells, for full control of contrast."""
+    assert len(widths) == len(segments) + 1
+    left, right = [], []
+    for n, seg in enumerate(segments):
+        w0, w1 = widths[n], widths[n + 1]
+        for i in range(0 if n == 0 else 1, samples + 1):
+            t = i / samples
+            e = t * t * (3 - 2 * t)  # smoothstep
+            w = w0 + (w1 - w0) * e
+            x, y = _bezier(*seg, t)
+            dx, dy = _bezier_tangent(*seg, t)
+            d = math.hypot(dx, dy) or 1
+            nx, ny = -dy / d * w / 2, dx / d * w / 2
+            left.append((x + nx, y + ny))
+            right.append((x - nx, y - ny))
+    path = pathops.Path()
+    pen = path.getPen()
+    outline = left + right[::-1]
+    pen.moveTo(outline[0])
+    for p in outline[1:]:
+        pen.lineTo(p)
+    pen.closePath()
+    path.simplify(fix_winding=True)  # tidy any self-overlap on tight inner curves
+    g = Glyph()
+    g.path = path
+    return g
+
+
 def pen_side(x0, x1, xr, yr, above=True, reach=2000):
     """Half-plane bounded by a line through (xr, yr) rising at the pen
     angle, spanning x0..x1: above=True keeps what is over the line. Used to

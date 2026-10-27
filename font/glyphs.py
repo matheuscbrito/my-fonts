@@ -9,7 +9,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_HAIR, CAP_OV, 
                      XH)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, foot_serif,
                     head_serif, intersect, nib_dot, nib_stroke, pen_bar,
-                    pen_side, ring, spur)
+                    pen_side, ring, spur, var_stroke)
 
 GLYPHS = {}  # name -> (unicode, lsb, rsb, draw function)
 
@@ -246,35 +246,56 @@ def j():
 
 @glyph("a", 0x61, SB_ROUND, SB_STRAIGHT)
 def a():
-    xs = 262  # left edge of the stem
-    s = xs + STEM / 2
-    yt = XH + OV - NIB_Y
-    hook = nib_stroke([
-        ((s, XH - 280), (s, XH - 80), (s - 40, yt), (s - 135, yt)),
-        ((s - 135, yt), (s - 205, yt), (s - 240, XH - 30), (s - 246, XH - 135)),
-    ])
-    hook.clip(Glyph().add(pen_side(s - 400, s - 150, s - 246 - 53, XH - 140))
-              .add(rect(s - 150, -400, s + 300, XH + 200)))
-    return Glyph().add(
-        rect(xs, 60, xs + STEM, XH - 240), spur(xs, xs + STEM), hook,
-        bowl(xs, -1, 262, XH * 0.56),
-    )
+    xs = 250  # left edge of the stem
+    sc = xs + STEM / 2
+    k = math.tan(PEN)
+    yt = XH + OV - ARCH_THIN / 2
+    # Top: a heavy flag on the left, a hairline over the top, full weight
+    # into the stem. The flag's underside is cut on the pen angle.
+    top = var_stroke([
+        ((xs - 200, XH - 120), (xs - 196, XH - 30), (xs - 130, yt), (xs - 40, yt)),
+        ((xs - 40, yt), (xs + 30, yt), (sc, XH - 40), (sc, XH - 185)),
+    ], [76, ARCH_THIN, STEM])
+    top.cut(Glyph().add(pen_side(xs - 330, xs - 110, xs - 200, XH - 100, above=False))
+            .clip(rect(xs - 330, XH - 240, xs - 110, XH)))
+    # Bowl: its top runs straight down the pen angle from the stem, then
+    # turns into a heavy left side and a hairline base.
+    b0 = (xs + 20, XH * 0.56)
+    b1 = (xs - 130, b0[1] - 150 * k)
+    bowl_ = var_stroke([
+        (b0, (b0[0] - 50, b0[1] - 50 * k), (b1[0] + 50, b1[1] + 50 * k), b1),
+        (b1, (b1[0] - 56, b1[1] - 56 * k), (xs - 232, 175), (xs - 232, 100)),
+        ((xs - 232, 100), (xs - 232, 34), (xs - 182, -OV + 7), (xs - 110, -OV + 7)),
+        ((xs - 110, -OV + 7), (xs - 45, -OV + 7), (xs, 40), (xs + 30, 95)),
+    ], [16, 24, 96, 14, 34])
+    return Glyph().add(rect(xs, 60, xs + STEM, XH - 170), spur(xs, xs + STEM), top, bowl_)
 
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)
 def s():
-    yt, yb = XH + OV - NIB_Y, -OV + NIB_Y
-    g = nib_stroke([
-        ((328, 380), (318, 450), (262, yt), (192, yt)),
-        ((192, yt), (108, yt), (52, 438), (52, 372)),
-        ((52, 372), (52, 280), (326, 230), (326, 128)),
-        ((326, 128), (326, 46), (268, yb), (190, yb)),
-        ((190, yb), (110, yb), (52, 26), (40, 96)),
-    ], width=STEM * 0.86)
-    # Both terminals end on pen-angle cuts, confined to the terminal areas.
-    top_cut = Glyph().add(pen_side(275, 460, 328, 352, above=False)).clip(rect(275, 300, 460, 420))
-    bottom_cut = Glyph().add(pen_side(-80, 95, 40, 118)).clip(rect(-80, 60, 95, 200))
-    return g.cut(top_cut, bottom_cut)
+    cx, cy = 190, XH / 2
+    yt = XH + OV - 7
+    # Upper half of the centre line; the lower half is the same turned 180°,
+    # so the spine is one continuous sweep through the centre.
+    upper = [
+        ((326, 420), (306, 466), (250, yt), (190, yt)),
+        ((190, yt), (115, yt), (58, 440), (58, 372)),
+        ((58, 372), (58, 300), (130, 268), (cx, cy)),
+    ]
+
+    def turn(p):
+        return (2 * cx - p[0], 2 * cy - p[1])
+
+    lower = [tuple(turn(p) for p in reversed(seg)) for seg in reversed(upper)]
+    # Hairline arcs, a heavy spine.
+    body = var_stroke(upper + lower, [14, 13, 92, 118, 92, 13, 14])
+    # Beak: a vertical wedge hanging from the top terminal, its tip cut on
+    # the pen angle. The bottom terminal gets the same beak turned 180°.
+    beak = contour(
+        (316, 454), (342, 440), (344, 352), (328, 346),
+        ((328, 372), (322, 396), (316, 412)),
+    )
+    return Glyph().add(body, beak, beak.rotate(180, cx, cy))
 
 
 @glyph("g", 0x67, SB_ROUND, SB_ROUND - 10)
@@ -282,20 +303,24 @@ def g():
     ry = 168
     cy = XH + OV - ry
     upper = ring(172, cy, 156, ry, 156 - STEM * 0.9)
-    ear = nib_stroke([
-        ((282, XH - 10), (312, XH + 8), (350, XH + 16), (384, XH + 16)),
-        ((384, XH + 16), (404, XH + 16), (414, XH - 4), (416, XH - 50)),
-    ], width=STEM * 0.7)
-    ear.clip(Glyph().add(pen_side(380, 520, 416 + 40, XH - 30)).add(rect(0, 0, 380, XH + 200)))
-    yb = DESC - OV + NIB_Y
-    loop = nib_stroke([
-        ((120, cy - ry + 18), (74, 120), (62, 84), (130, 70)),
-        ((130, 70), (200, 56), (340, 74), (396, 40)),
-        ((396, 40), (440, 12), (442, -50), (442, -100)),
-        ((442, -100), (442, -190), (330, yb), (222, yb)),
-        ((222, yb), (104, yb), (26, DESC + 40), (26, -130)),
-        ((26, -130), (26, -60), (62, 46), (132, 70)),
-    ], width=STEM * 0.9, taper=(0.07, 0.12))
+    # Ear: a hairline off the bowl that turns down into a pen-cut flag.
+    ear = var_stroke([
+        ((270, XH - 8), (300, XH + 8), (330, XH + 18), (362, XH + 18)),
+        ((362, XH + 18), (396, XH + 18), (414, XH - 4), (414, XH - 62)),
+    ], [16, 14, 74])
+    ear.cut(Glyph().add(pen_side(360, 480, 414, XH - 42, above=False))
+            .clip(rect(360, XH - 140, 480, XH + 40)))
+    # Link and lower loop: hairline link, heavy right side, hairline base,
+    # medium left side closing back into the link.
+    yb = DESC - OV + 7
+    loop = var_stroke([
+        ((128, cy - ry + 12), (92, 138), (74, 108), (100, 84)),
+        ((100, 84), (128, 66), (190, 62), (250, 62)),
+        ((250, 62), (330, 62), (440, 50), (440, -80)),
+        ((440, -80), (440, -180), (345, yb), (230, yb)),
+        ((230, yb), (105, yb), (25, -190), (25, -120)),
+        ((25, -120), (25, -50), (65, 40), (125, 60)),
+    ], [22, 18, 13, 104, 13, 84, 18])
     return Glyph().add(upper, ear, loop)
 
 

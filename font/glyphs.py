@@ -6,7 +6,7 @@ from .draw import Glyph, contour, ellipse, rect
 from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_HAIR, CAP_OV, CAP_SB_ROUND,
                      CAP_SERIF, CAP_SERIF_TIP, CAP_THIN, THIN, BAR_THIN, CAP_BAR_THIN, ROUND, CAP_ROUND,
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
-                     K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
+                     K_IN, K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, pen_bar,
@@ -210,7 +210,7 @@ def _blunt_end(hook, cx, cy, rx, ry, yc, width, corner="top_right"):
     if flip:
         hook.path = hook.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
     xe = cx + rx * 0.94
-    hook.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    hook.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry, K_OUT)))
     hook.cut(rect(xe, cy - ry - 10, xe + 200, cy + ry + 10))
     if flip:
         hook.path = hook.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
@@ -618,8 +618,8 @@ def _cap_bowl(x_in, y0, y1, xc, rx, side, t_top=CAP_BOWL_THIN, t_bot=CAP_BOWL_TH
     curve. x_in is the stem's inner edge."""
     cy, ry = (y0 + y1) / 2, (y1 - y0) / 2
     cyi, ryi = (y0 + t_bot + y1 - t_top) / 2, (y1 - t_top - y0 - t_bot) / 2
-    return Glyph().add(rect(x_in - 10, y0, xc, y1), ellipse(xc, cy, rx, ry)).cut(
-        rect(x_in, y0 + t_bot, xc, y1 - t_top), ellipse(xc, cyi, rx - side, ryi)).clip(
+    return Glyph().add(rect(x_in - 10, y0, xc, y1), ellipse(xc, cy, rx, ry, K_OUT)).cut(
+        rect(x_in, y0 + t_bot, xc, y1 - t_top), ellipse(xc, cyi, rx - side, ryi, K_IN)).clip(
         rect(x_in - 10, y0 - 10, xc + rx + 10, y1 + 10))
 
 
@@ -756,7 +756,7 @@ def _beak(g, cx, rx, ry, yc, width=66, cy=CAP / 2):
     """Top terminal of c, C, G: the stroke thickens into a slab with a flat
     outer face, its foot cut on the pen angle."""
     xe = cx + rx * 0.93
-    g.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    g.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry, K_OUT)))
     g.cut(rect(xe, yc, xe + 200, cy + ry + 100))
     return xe
 

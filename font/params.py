@@ -59,8 +59,11 @@ M_COUNTER = 198    # white space inside each half of m
 # Round shapes
 O_THIN = THIN + 2  # thinnest point of bowls, the a's crown
 STRESS = 0         # tilt of the stress axis in degrees (0 = vertical, negative leans right)
-K_OUT = 0.5523     # curve fullness of outer contours (0.5523 = true ellipse, geometric)
-K_IN = 0.5523      # inner contours match, keeping counters pure ellipses
+# Curve fullness: 0.5523 is a true ellipse; higher flattens the sides and
+# hardens the corners toward a superellipse.
+K_OUT = 0.68       # outer contours of bowls and rings
+K_IN = 0.66        # counters, a touch rounder so the thin points stay crisp
+ARCH_K = 0.74      # shoulder fullness of n m h u arches (0.56 = soft)
 
 # Spacing, measured from the outermost ink (serif tips included)
 SB_STRAIGHT = 20

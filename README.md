@@ -42,7 +42,8 @@ h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; 
 - Capitals: the full alphabet, `A` to `Z`.
 - Punctuation: `. ,` and space.
 
-Curves are built from true ellipses: rings (an ellipse minus a counter),
+Curves are built from superellipses (`K_OUT`, `K_IN`: flatter sides, harder
+corners) and arches squared by `ARCH_K`. Built from them: rings (an ellipse minus a counter),
 ellipses run off along straight pen-angle tangents into stems, and bowls
 joined by straight spines tangent to both (s, S). Stroke ends are cut on the
 shared pen angle (`PEN`) or thicken into blunt, flat-faced ends whose feet

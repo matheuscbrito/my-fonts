@@ -4,7 +4,7 @@ import math
 import pathops
 
 from .draw import KAPPA, Glyph, circle, contour, ellipse
-from .params import (ARCH_THIN, BRACKET, CAP_BRACKET, CAP_SERIF, CAP_SERIF_TIP,
+from .params import (ARCH_K, ARCH_THIN, BRACKET, CAP_BRACKET, CAP_SERIF, CAP_SERIF_TIP,
                      HEAD, HEAD_SLOPE, K_IN, K_OUT, O_THIN, OV, SERIF,
                      BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, HAIR, PEN, ROUND, SERIF_TIP, STEM, STRESS, THIN)
 
@@ -103,12 +103,12 @@ def arch(xj, xr0, xr1, top, ov=OV, thin=ARCH_THIN):
     low = top - 260
     return contour(
         (xj, j_out),
-        ((xj + (ax - xj) * 0.18, j_out + (yo - j_out) * 0.62), (ax - (ax - xj) * 0.55, yo), (ax, yo)),
-        ((ax + (xr1 - ax) * 0.56, yo), (xr1, r_out + (yo - r_out) * 0.56), (xr1, r_out)),
+        ((xj + (ax - xj) * 0.18, j_out + (yo - j_out) * 0.62), (ax - (ax - xj) * ARCH_K, yo), (ax, yo)),
+        ((ax + (xr1 - ax) * ARCH_K, yo), (xr1, r_out + (yo - r_out) * ARCH_K), (xr1, r_out)),
         (xr1, low),
         (xr0, low),
         (xr0, r_in),
-        ((xr0, r_in + (yi - r_in) * 0.56), (ai + (xr0 - ai) * 0.56, yi), (ai, yi)),
+        ((xr0, r_in + (yi - r_in) * ARCH_K), (ai + (xr0 - ai) * ARCH_K, yi), (ai, yi)),
         ((ai - (ai - xj) * 0.62, yi), (xj, j_in + (yi - j_in) * 0.30), (xj, j_in)),
     )
 

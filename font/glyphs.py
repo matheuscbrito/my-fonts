@@ -3,7 +3,8 @@ the build script places it between its sidebearings."""
 import math
 
 from .draw import Glyph, contour, ellipse, rect
-from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_HAIR, CAP_OV, CAP_SB_ROUND, CAP_SERIF_TIP,
+from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_HAIR, CAP_OV, CAP_SB_ROUND,
+                     CAP_SERIF, CAP_SERIF_TIP,
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
@@ -283,25 +284,21 @@ def a():
     return Glyph().add(bowl_, hook, ball, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
 
 
-@glyph("s", 0x73, SB_ROUND, SB_ROUND)
-def s():
-    # Two elliptical bowls joined by a straight spine: each bowl's outer
-    # ellipse touches one edge of the spine and its counter the other, so
-    # every edge runs on smoothly. The lower half is the upper turned 180°.
-    C = (190, XH / 2)
-    W = 98                    # spine weight, measured across
-    fall = math.radians(36)   # the spine falls to the right at this angle
+def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
+    """Two elliptical bowls joined by a straight spine: each bowl's outer
+    ellipse touches one edge of the spine and its counter the other, so
+    every edge runs on smoothly. The lower half is the upper turned 180°
+    around C. W is the spine weight measured across; left/right are the
+    upper bowl's side weights; beak is the terminal slab's width."""
     n = (math.sin(fall), math.cos(fall))
     nC = n[0] * C[0] + n[1] * C[1]
-    rx, ry = 168, 136
-    cy = XH + OV - ry
+    cy = top - ry
     s_o = math.hypot(rx * n[0], ry * n[1])
     cx = (nC - W / 2 + s_o - n[1] * cy) / n[0]
     t_o = tangent(cx, cy, rx, ry, (-n[0], -n[1]))[0]
     # Counter: a hairline top, heavy left side, lighter right side.
-    left, right = 92, 34
     rxi, cxi = rx - (left + right) / 2, cx + (left - right) / 2
-    top_i = XH + OV - HAIR - 9
+    top_i = top - hair
     lo, hi = 20, ry
     for _ in range(30):
         mid = (lo + hi) / 2
@@ -313,15 +310,20 @@ def s():
     t_i = tangent(cxi, cyi, rxi, lo, (-n[0], -n[1]))[0]
     upper = Glyph().add(ellipse(cx, cy, rx, ry)).cut(ellipse(cxi, cyi, rxi, lo))
     # Drop the bowl's bottom past the spine joint, and cut the terminal.
-    upper.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(-1000, -1000, 1000, cy)))
+    upper.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(-1000, -1000, 2000, cy)))
     # Beak: the terminal thickens into a slab with a flat outer face, its
     # foot cut on the pen angle.
     xe, yc = cx + rx * 0.94, cy - ry * 0.04
-    upper.add(Glyph().add(pen_side(xe - 40, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
-    upper.cut(pen_side(cx + 20, cx + rx + 40, xe, yc, above=False), rect(xe, yc - 200, xe + 100, cy + ry))
+    upper.add(Glyph().add(pen_side(xe - beak, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    upper.cut(pen_side(cx + 20, cx + rx + 40, xe, yc, above=False), rect(xe, yc - 400, xe + 100, cy + ry))
     turn = lambda p: (2 * C[0] - p[0], 2 * C[1] - p[1])
     spine = contour(t_o, turn(t_i), turn(t_o), t_i)
     return Glyph().add(upper, upper.turn(*C), spine)
+
+
+@glyph("s", 0x73, SB_ROUND, SB_ROUND)
+def s():
+    return _s((190, XH / 2), XH + OV, 168, 136, 98, 92, 34, HAIR + 9, 40)
 
 
 @glyph("g", 0x67, SB_ROUND, SB_ROUND - 10)
@@ -346,22 +348,30 @@ DIAG = STEM * 1.1     # thick diagonal, measured horizontally
 DIAG_HAIR = HAIR * 2  # thin diagonal
 
 
-def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, hair=DIAG_HAIR):
+def _diag_serif(x0, x1, scale=1.0, cap=False):
+    """Foot serif for a diagonal's end, lowercase or capital sized."""
+    if cap:
+        return foot_serif(x0, x1, reach=CAP_SERIF * scale, tip=CAP_SERIF_TIP, bracket=CAP_BRACKET)
+    return foot_serif(x0, x1, reach=SERIF * scale)
+
+
+def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, hair=DIAG_HAIR,
+       top=XH, thick=DIAG, cap=False):
     """A v from a thick left and a thin right diagonal meeting in a point."""
-    xa = x0 + DIAG / 2
+    xa = x0 + thick / 2
     xb = x0 + span - hair / 2
     xv = x0 + span * apex
     yv = -OV * 1.6 if bottom is None else bottom
-    A, B = (xa - DIAG / 2, XH), (xa + DIAG / 2, XH)
-    D, E = (xb - hair / 2, XH), (xb + hair / 2, XH)
+    A, B = (xa - thick / 2, top), (xa + thick / 2, top)
+    D, E = (xb - hair / 2, top), (xb + hair / 2, top)
     V = (xv, yv)
     C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
                   D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
     g = Glyph().add(contour(A, V, E, D, C, B))
     if left_serif:
-        g.add(foot_serif(A[0], B[0], reach=SERIF).mirror_y(XH / 2))
+        g.add(_diag_serif(A[0], B[0], 1.0, cap).mirror_y(top / 2))
     if right_serif:
-        g.add(foot_serif(D[0], E[0], reach=SERIF * 0.8).mirror_y(XH / 2))
+        g.add(_diag_serif(D[0], E[0], 0.8, cap).mirror_y(top / 2))
     return g, V, E
 
 
@@ -551,6 +561,305 @@ def O():
     rx = 364
     ry = CAP / 2 + CAP_OV
     return ring(rx, CAP / 2, rx, ry, rx - CAP_STEM * 1.02, thin=CAP_HAIR)
+
+
+CAP_DIAG = CAP_STEM * 1.12      # thick capital diagonal, measured horizontally
+CAP_THIN = CAP_HAIR * 2 + 4     # thin capital stems and diagonals
+CAP_BOWL_THIN = CAP_HAIR + 6    # thinnest point of the new capital bowls
+
+
+def _thin_stem(x0, top=CAP, bottom=0, head_left=True, head_right=True, foot=True):
+    x1 = x0 + CAP_THIN
+    reach = CAP_SERIF * 0.85
+    g = Glyph().add(rect(x0, bottom, x1, top))
+    if head_left or head_right:
+        g.add(foot_serif(x0, x1, 0, reach, CAP_SERIF_TIP, CAP_BRACKET, head_left, head_right)
+              .mirror_y(CAP / 2))
+    if foot:
+        g.add(foot_serif(x0, x1, 0, reach, CAP_SERIF_TIP, CAP_BRACKET))
+    return g
+
+
+def _line_x(p, q, y):
+    """x where line p-q crosses height y."""
+    return p[0] + (q[0] - p[0]) * (y - p[1]) / (q[1] - p[1])
+
+
+def _cap_bowl(x_in, y0, y1, xc, rx, side, t_top=CAP_BOWL_THIN, t_bot=CAP_BOWL_THIN):
+    """Bowl of D P R B: flat hairline arms from the stem out to xc, then a
+    half ellipse whose far side is `side` thick. The counter's straight
+    edges meet its ellipse tangentially, so the arms run smoothly into the
+    curve. x_in is the stem's inner edge."""
+    cy, ry = (y0 + y1) / 2, (y1 - y0) / 2
+    cyi, ryi = (y0 + t_bot + y1 - t_top) / 2, (y1 - t_top - y0 - t_bot) / 2
+    return Glyph().add(rect(x_in - 10, y0, xc, y1), ellipse(xc, cy, rx, ry)).cut(
+        rect(x_in, y0 + t_bot, xc, y1 - t_top), ellipse(xc, cyi, rx - side, ryi)).clip(
+        rect(x_in - 10, y0 - 10, xc + rx + 10, y1 + 10))
+
+
+@glyph("N", 0x4E, CAP_SB_STRAIGHT - 4, CAP_SB_STRAIGHT - 4)
+def N():
+    w = 630
+    # The thick diagonal leaves the top-left corner and ends in a point on
+    # the baseline at the far right.
+    rise = (CAP + CAP_OV) / w
+    diag_ = contour((0, CAP), (w, -CAP_OV), (w, -CAP_OV + CAP_DIAG * rise), (CAP_DIAG, CAP))
+    y_r = -CAP_OV + CAP_THIN * rise  # where the right stem meets the diagonal's underside
+    return Glyph().add(
+        _thin_stem(0, head_right=False), diag_,
+        _thin_stem(w - CAP_THIN, bottom=y_r, foot=False),
+    )
+
+
+@glyph("M", 0x4D, CAP_SB_STRAIGHT - 4, CAP_SB_STRAIGHT)
+def M():
+    w = 800
+    xs = w - CAP_STEM
+    A, B = (0, CAP), (CAP_DIAG, CAP)
+    V = (w * 0.47, -CAP_OV)
+    E, D = (xs, CAP), (xs - CAP_THIN, CAP)
+    C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
+                  D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
+    return Glyph().add(
+        _thin_stem(0, head_right=False), contour(A, V, E, D, C, B),
+        _cap_stem(xs, head_left=False),
+    )
+
+
+def _cap_v(x0, span, **kw):
+    return _v(x0, span=span, top=CAP, thick=CAP_DIAG, hair=CAP_THIN, cap=True,
+              **{"apex": 0.5, "bottom": -CAP_OV * 1.6, **kw})
+
+
+@glyph("V", 0x56, CAP_SB_STRAIGHT - 22, CAP_SB_STRAIGHT - 22)
+def V():
+    return _cap_v(0, 650)[0]
+
+
+@glyph("W", 0x57, CAP_SB_STRAIGHT - 22, CAP_SB_STRAIGHT - 22)
+def W():
+    span = 500
+    first = _cap_v(0, span, right_serif=False)[0]
+    second = _cap_v(span - CAP_THIN / 2 - CAP_DIAG / 2, span)[0]
+    return Glyph().add(first, second)
+
+
+@glyph("A", 0x41, CAP_SB_STRAIGHT - 22, CAP_SB_STRAIGHT - 22)
+def A():
+    span = 660
+    # An upside-down V: thin left, thick right, a sharp apex.
+    v_, Vp, E = _cap_v(0, span, bottom=-CAP_OV * 2)
+    c = (span / 2, CAP / 2)
+    g = v_.turn(*c)
+    turn = lambda p: (2 * c[0] - p[0], 2 * c[1] - p[1])
+    apex, out_l, out_r = turn(Vp), turn(E), turn((0, CAP))
+    # Crossbar rising at the pen angle, flaring where it meets each leg,
+    # kept inside the letter's outline.
+    yb = CAP * 0.27
+    x0 = _line_x(apex, out_l, yb) + CAP_THIN
+    x1 = _line_x(apex, out_r, yb) - CAP_DIAG
+    bar = Glyph().add(pen_bar(x0, x1, yb, CAP_HAIR + 6, flare=(BAR_FLARE * 0.25, BAR_TIP * 0.6),
+                              flare_len=70, ext=(60, 60)))
+    return g.add(bar.clip(contour(apex, out_r, out_l)))
+
+
+@glyph("X", 0x58, CAP_SB_STRAIGHT - 20, CAP_SB_STRAIGHT - 20)
+def X():
+    wd = 640
+    t0, t1 = 6, CAP_DIAG + 6
+    h0, h1 = wd - CAP_THIN - 16, wd - 16
+    return Glyph().add(
+        diag((CAP_DIAG / 2 + 6, CAP), (wd - CAP_DIAG / 2 - 6, 0), CAP_DIAG),
+        diag((wd - CAP_THIN / 2 - 16, CAP), (CAP_THIN / 2 + 16, 0), CAP_THIN),
+        _diag_serif(t0, t1, cap=True).mirror_y(CAP / 2),
+        _diag_serif(h0, h1, 0.8, cap=True).mirror_y(CAP / 2),
+        _diag_serif(16, 16 + CAP_THIN, 0.8, cap=True),
+        _diag_serif(wd - CAP_DIAG - 6, wd - 6, cap=True),
+    )
+
+
+@glyph("Y", 0x59, CAP_SB_STRAIGHT - 20, CAP_SB_STRAIGHT - 20)
+def Y():
+    arms, Vp, _ = _cap_v(0, 640, bottom=CAP * 0.36)
+    s0 = Vp[0] - CAP_STEM / 2
+    return Glyph().add(arms, rect(s0, 0, s0 + CAP_STEM, CAP * 0.44), cap_foot(s0, s0 + CAP_STEM))
+
+
+@glyph("K", 0x4B, CAP_SB_STRAIGHT, CAP_SB_STRAIGHT - 16)
+def K():
+    arm_top = CAP_STEM + 380
+    low = (CAP_STEM - 10, CAP * 0.26)
+    arm = diag((arm_top, CAP), low, CAP_THIN)
+    # The leg grows out of the arm: trim it along the arm's left edge.
+    l1 = (arm_top - CAP_THIN / 2, CAP)
+    l2 = (low[0] - CAP_THIN / 2, low[1])
+    below_arm = contour(l2, l1, (l1[0] + 1000, l1[1]), (l1[0] + 1000, -500), (l2[0], -500))
+    foot_x = CAP_STEM + 420
+    leg = Glyph().add(diag((CAP_STEM + 110, CAP * 0.62), (foot_x, 0), CAP_DIAG)).clip(below_arm)
+    return Glyph().add(
+        _cap_stem(0),
+        Glyph().add(arm, leg).clip(rect(CAP_STEM - 2, -50, 1200, CAP + 50)),
+        _diag_serif(arm_top - CAP_THIN / 2, arm_top + CAP_THIN / 2, 0.9, cap=True).mirror_y(CAP / 2),
+        _diag_serif(foot_x - CAP_DIAG / 2, foot_x + CAP_DIAG / 2, cap=True),
+    )
+
+
+@glyph("Z", 0x5A, CAP_SB_STRAIGHT - 6, CAP_SB_STRAIGHT - 6)
+def Z():
+    wd = 560
+    bar = ARM + 2
+    slant = CAP_STEM * 1.3
+    return Glyph().add(
+        rect(0, CAP - bar, wd, CAP),
+        contour((wd - slant, CAP - bar), (wd, CAP - bar), (slant, bar), (0, bar)),
+        rect(0, 0, wd, bar),
+        arm_serif(wd, 0, bar, 150).mirror_x(wd / 2).mirror_y(CAP / 2),
+        arm_serif(wd, 0, bar, 170),
+    )
+
+
+def _c_ring(rx):
+    ry = CAP / 2 + CAP_OV
+    return rx, ry, ring(rx, CAP / 2, rx, ry, rx - CAP_STEM * 0.95, thin=CAP_BOWL_THIN, dx_in=18)
+
+
+def _beak(g, cx, rx, ry, yc, width=48):
+    """Top terminal of C, G: the stroke thickens into a slab with a flat
+    outer face, its foot cut on the pen angle."""
+    xe = cx + rx * 0.93
+    g.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, CAP / 2, rx, ry)))
+    g.cut(rect(xe, yc, xe + 200, CAP + 100))
+    return xe
+
+
+@glyph("C", 0x43, CAP_SB_ROUND, CAP_SB_ROUND - 14)
+def C():
+    rx, ry, g = _c_ring(322)
+    cx = rx
+    yt, yb = CAP * 0.64, CAP * 0.26
+    xe = _beak(g, cx, rx, ry, yt)
+    # Aperture between the beak's pen-cut foot and the lower terminal's
+    # pen-cut end.
+    g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
+          .clip(pen_side(cx + 20, cx + rx + 60, cx + rx, yb)))
+    return g
+
+
+@glyph("G", 0x47, CAP_SB_ROUND, CAP_SB_STRAIGHT - 6)
+def G():
+    rx, ry, g = _c_ring(330)
+    cx = rx
+    yt = CAP * 0.64
+    yg = CAP * 0.44  # top of the short stem
+    xe = _beak(g, cx, rx, ry, yt)
+    xs1 = cx + rx - 4
+    xs0 = xs1 - CAP_STEM
+    g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
+          .clip(rect(cx + 20, yg, cx + rx + 60, CAP)))
+    # A short stem on the bowl's right, ending at the foot in a spur like
+    # the lowercase ones, with a pen-angle bar on top flaring to the left.
+    y0 = 36
+    stem = Glyph().add(rect(xs0, y0 + 60, xs1, yg), spur(xs0, xs1, y0))
+    bar = pen_bar(xs0 - 130, xs1, yg - 4, CAP_HAIR + 8, pivot=xs1,
+                  flare=(BAR_FLARE * 0.5, 0), flare_len=80, ext=(0, 0))
+    return g.add(stem, Glyph().add(bar).clip(rect(xs0 - 200, 0, xs1, CAP)))
+
+
+@glyph("Q", 0x51, CAP_SB_ROUND, -70)  # the tail tucks under the next letter
+def Q():
+    rx = 364
+    ry = CAP / 2 + CAP_OV
+    o = ring(rx, CAP / 2, rx, ry, rx - CAP_STEM * 1.02, thin=CAP_HAIR)
+    # Tail: a crescent between two ellipse arcs, sweeping out from under the
+    # bowl and ending on a pen-angle cut.
+    cx = rx
+    tail = Glyph().add(ellipse(cx + 290, -4, 300, 170)).cut(ellipse(cx + 330, 40, 290, 180))
+    tail.clip(rect(cx - 40, -400, cx + rx + 120, 0))
+    tail.cut(pen_side(cx + 200, cx + rx + 200, cx + 390, -150, above=False))
+    return o.add(tail)
+
+
+@glyph("U", 0x55, CAP_SB_STRAIGHT - 4, CAP_SB_STRAIGHT - 4)
+def U():
+    w = 640
+    cy = 260
+    # Lower half of a ring whose sides leave the two stems straight down:
+    # thick on the left, thin on the right.
+    rx_in = (w - CAP_THIN - CAP_STEM) / 2
+    bowl_ = ring(w / 2, cy, w / 2, cy + CAP_OV, rx_in, thin=CAP_BOWL_THIN,
+                 dx_in=(CAP_STEM - CAP_THIN) / 2)
+    bowl_.clip(rect(-10, -100, w + 10, cy))
+    return Glyph().add(
+        bowl_,
+        rect(0, cy - 1, CAP_STEM, CAP), cap_head(0, CAP_STEM, CAP),
+        _thin_stem(w - CAP_THIN, bottom=cy - 1, foot=False),
+    )
+
+
+@glyph("J", 0x4A, CAP_SB_ROUND - 10, CAP_SB_STRAIGHT)
+def J():
+    x0 = 230
+    x1 = x0 + CAP_STEM
+    rx, cy, left = 210, 230, 60
+    cx = x1 - rx
+    # Hook: the lower half of a ring leaving the stem straight down, ending
+    # on the left in a teardrop, the a's terminal turned upside down.
+    hook = ring(cx, cy, rx, cy + CAP_OV, rx - (CAP_STEM + left) / 2, thin=CAP_BOWL_THIN,
+                dx_in=(left - CAP_STEM) / 2)
+    hook.clip(rect(cx - rx - 10, -100, x1 + 10, cy)).cut(rect(cx - rx - 10, cy - 40, cx, cy + 10))
+    rb = 54
+    tear = drop(cx - rx + rb, cy + 6, rb, angle=188, length=rb * 2.6)
+    return Glyph().add(hook, tear, rect(x0, cy - 1, x1, CAP), cap_head(x0, x1, CAP))
+
+
+@glyph("D", 0x44, CAP_SB_STRAIGHT, CAP_SB_ROUND)
+def D():
+    xc = 290
+    return Glyph().add(
+        _cap_stem(0, head_right=False, foot_right=False),
+        _cap_bowl(CAP_STEM, 0, CAP, xc, 330, CAP_STEM * 1.04),
+    )
+
+
+@glyph("P", 0x50, CAP_SB_STRAIGHT, CAP_SB_ROUND - 10)
+def P():
+    yb = CAP * 0.40
+    return Glyph().add(
+        _cap_stem(0, head_right=False),
+        _cap_bowl(CAP_STEM, yb, CAP, 250, 230, CAP_STEM * 0.98, t_bot=CAP_BOWL_THIN + 4),
+    )
+
+
+@glyph("R", 0x52, CAP_SB_STRAIGHT, CAP_SB_STRAIGHT - 20)
+def R():
+    yb = CAP * 0.42
+    t_bot = CAP_BOWL_THIN + 4
+    xc, rx = 240, 225
+    # Leg: a thick diagonal from the bowl's underside to a serifed foot.
+    foot_x = xc + rx + 30
+    leg = Glyph().add(diag((xc - 10, yb + 60), (foot_x, 0), CAP_DIAG)).clip(
+        rect(CAP_STEM, -10, 1000, yb + t_bot))
+    return Glyph().add(
+        _cap_stem(0, head_right=False),
+        _cap_bowl(CAP_STEM, yb, CAP, xc, rx, CAP_STEM * 0.98, t_bot=t_bot),
+        leg, _diag_serif(foot_x - CAP_DIAG / 2, foot_x + CAP_DIAG / 2, cap=True),
+    )
+
+
+@glyph("B", 0x42, CAP_SB_STRAIGHT, CAP_SB_ROUND - 6)
+def B():
+    ym = CAP * 0.53  # bottom of the middle arm
+    tm = CAP_BOWL_THIN + 4
+    return Glyph().add(
+        _cap_stem(0, head_right=False, foot_right=False),
+        _cap_bowl(CAP_STEM, ym, CAP, 230, 200, CAP_STEM * 0.9, t_bot=tm),
+        _cap_bowl(CAP_STEM, 0, ym + tm, 250, 236, CAP_STEM * 1.0, t_top=tm),
+    )
+
+
+@glyph("S", 0x53, CAP_SB_ROUND, CAP_SB_ROUND)
+def S():
+    return _s((260, CAP / 2), CAP + CAP_OV, 236, 188, 118, 116, 40, CAP_HAIR + 8, 50)
 
 
 # -------------------------------------------------------------- punctuation

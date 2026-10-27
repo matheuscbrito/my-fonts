@@ -35,12 +35,16 @@ Then open http://127.0.0.1:8765/specimen/.
 h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; }
 ```
 
-## Current glyph set (v0.2)
+## Current glyph set (v0.3)
 
 - Lowercase: the full alphabet, `a` to `z`.
-- Capitals: `H I O L E F T`.
+- Capitals: the full alphabet, `A` to `Z`.
 - Punctuation: `. ,` and space.
 
-Curvy letters (a f g j s t and the y tail) are drawn with `nib_stroke`, which
-sweeps a flat pen along a curve, so strokes are thick moving up and down and
-thin moving sideways. Stroke ends are cut on the shared pen angle (`PEN`).
+Curves are built from true ellipses: rings (an ellipse minus a counter),
+ellipses run off along straight pen-angle tangents into stems, and bowls
+joined by straight spines tangent to both (s, S). Stroke ends are cut on the
+shared pen angle (`PEN`), finish in teardrops (a, J), or thicken into
+flat-faced beaks (s, S, C, G). Crossbars rise at the pen angle and flare at
+their ends. f and j still use `nib_stroke`, which sweeps a flat pen along a
+curve.

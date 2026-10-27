@@ -11,7 +11,7 @@ tako.ai, but every outline here is original.
 - `font/draw.py`: drawing primitives (contours, ellipses, boolean union/cut).
 - `font/parts.py`: reusable letter parts (serifs, arches, bowls, pen-angle bars and cuts, the broad-nib `nib_stroke`).
 - `font/glyphs.py`: one function per glyph.
-- `font/kerning.py`: kerning groups and values, written to the `kern` feature at build time.
+- `font/kerning.py`: optical kerning measured from the outlines (band-by-band closeness, with a collision guard), written to the `kern` feature at build time. `STRENGTH` and `LIMIT` set how hard it pulls.
 - `build.py`: draws every glyph and writes `dist/*.otf` and `dist/*.woff2`.
 - `specimen/index.html`: specimen page. `specimen/proof.html?t=nohO&s=300`: big close-up proof.
 

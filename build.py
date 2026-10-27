@@ -34,6 +34,7 @@ def build():
     cmap = {}
     charstrings = {}
     metrics = {}
+    placed = {}  # name -> (outline in place, advance), for kerning
 
     w, lsb, cs = notdef()
     charstrings[".notdef"] = cs
@@ -46,6 +47,7 @@ def build():
             width = round(x_max - x_min + lsb + rsb)
             pen = T2CharStringPen(width, None)
             path.draw(TransformPen(pen, (1, 0, 0, 1, lsb - x_min, 0)))
+            placed[name] = (path.transform(1, 0, 0, 1, lsb - x_min, 0), width)
         else:
             width = lsb + rsb
             pen = T2CharStringPen(width, None)
@@ -79,7 +81,7 @@ def build():
         fsSelection=0x40 | 0x80,  # REGULAR, USE_TYPO_METRICS
     )
     fb.setupPost()
-    addOpenTypeFeaturesFromString(fb.font, kern_feature())
+    addOpenTypeFeaturesFromString(fb.font, kern_feature(placed))
 
     os.makedirs(DIST, exist_ok=True)
     otf = os.path.join(DIST, ps_name + ".otf")

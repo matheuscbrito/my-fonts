@@ -290,11 +290,11 @@ def a():
     lo, hi = 20, ry * 2
     for _ in range(30):
         mid = (lo + hi) / 2
-        if pen_line_y(cxi, y0 + mid, rxi, mid, xs, steep) < gap:
+        if pen_line_y(cxi, y0 + mid, rxi, mid, xs, steep, K_IN) < gap:
             lo = mid
         else:
             hi = mid
-    bowl_ = pen_ellipse(cx, cy, rx, ry, xj).cut(pen_ellipse(cxi, y0 + lo, rxi, lo, xj, steep))
+    bowl_ = pen_ellipse(cx, cy, rx, ry, xj).cut(pen_ellipse(cxi, y0 + lo, rxi, lo, xj, steep, K_IN))
     # Stem foot: one long pen-angle cut from below the bowl's join out to a
     # sharp spur, its upper edge running straight back into the stem.
     xt = xs + STEM + 78
@@ -302,7 +302,7 @@ def a():
     return Glyph().add(bowl_, hook, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
 
 
-def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
+def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(26)):
     """Two elliptical bowls joined by a straight spine: each bowl's outer
     ellipse touches one edge of the spine and its counter the other, so
     every edge runs on smoothly. The lower half is the upper turned 180°
@@ -311,7 +311,7 @@ def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
     n = (math.sin(fall), math.cos(fall))
     nC = n[0] * C[0] + n[1] * C[1]
     cy = top - ry
-    s_o = math.hypot(rx * n[0], ry * n[1])
+    s_o = tangent(0, 0, rx, ry, n)[1]
     cx = (nC - W / 2 + s_o - n[1] * cy) / n[0]
     t_o = tangent(cx, cy, rx, ry, (-n[0], -n[1]))[0]
     # Counter: a hairline top, heavy left side, lighter right side.
@@ -320,19 +320,19 @@ def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
     lo, hi = 20, ry
     for _ in range(30):
         mid = (lo + hi) / 2
-        if -tangent(cxi, top_i - mid, rxi, mid, (-n[0], -n[1]))[1] > nC + W / 2:
+        if -tangent(cxi, top_i - mid, rxi, mid, (-n[0], -n[1]), K_IN)[1] > nC + W / 2:
             lo = mid
         else:
             hi = mid
     cyi = top_i - lo
-    t_i = tangent(cxi, cyi, rxi, lo, (-n[0], -n[1]))[0]
-    upper = Glyph().add(ellipse(cx, cy, rx, ry)).cut(ellipse(cxi, cyi, rxi, lo))
+    t_i = tangent(cxi, cyi, rxi, lo, (-n[0], -n[1]), K_IN)[0]
+    upper = Glyph().add(ellipse(cx, cy, rx, ry, K_OUT)).cut(ellipse(cxi, cyi, rxi, lo, K_IN))
     # Drop the bowl's bottom past the spine joint, and cut the terminal.
     upper.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(-1000, -1000, 2000, cy)))
     # Beak: the terminal thickens into a slab with a flat outer face, its
     # foot cut on the pen angle.
     xe, yc = cx + rx * 0.94, cy - ry * 0.04
-    upper.add(Glyph().add(pen_side(xe - beak, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    upper.add(Glyph().add(pen_side(xe - beak, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry, K_OUT)))
     upper.cut(pen_side(cx + 20, cx + rx + 40, xe, yc, above=False), rect(xe, yc - 400, xe + 100, cy + ry))
     turn = lambda p: (2 * C[0] - p[0], 2 * C[1] - p[1])
     spine = contour(t_o, turn(t_i), turn(t_o), t_i)
@@ -422,20 +422,20 @@ def y():
     nrm = (1, dx)                     # outward normal of the stroke's right side
     xr = E[0] + dx * XH               # right edge at y = 0 (the left edge is hair further left)
 
-    def touching(rx, ry, cy, shift):
+    def touching(rx, ry, cy, shift, k):
         # centre x that makes the ellipse touch the edge line x = xr - shift + dx*y
         h_line = nrm[0] * (xr - shift)
-        return (h_line - nrm[1] * cy - math.hypot(rx * nrm[0], ry * nrm[1])) / nrm[0]
+        return (h_line - nrm[1] * cy - tangent(0, 0, rx, ry, nrm, k)[1]) / nrm[0]
 
     rx, ry = 120, 108
     cy = DESC - OV + ry
-    cx = touching(rx, ry, cy, 0)
+    cx = touching(rx, ry, cy, 0, K_OUT)
     rxi, ryi = 50, ry - 22
     cyi = DESC - OV + 16 + ryi
-    cxi = touching(rxi, ryi, cyi, hair)
+    cxi = touching(rxi, ryi, cyi, hair, K_IN)
     t_o = tangent(cx, cy, rx, ry, nrm)[0]
-    t_i = tangent(cxi, cyi, rxi, ryi, nrm)[0]
-    tail = Glyph().add(ellipse(cx, cy, rx, ry)).cut(ellipse(cxi, cyi, rxi, ryi))
+    t_i = tangent(cxi, cyi, rxi, ryi, nrm, K_IN)[0]
+    tail = Glyph().add(ellipse(cx, cy, rx, ry, K_OUT)).cut(ellipse(cxi, cyi, rxi, ryi, K_IN))
     tail.clip(rect(cx - rx - 10, DESC - 100, cx + rx + 10, cy + 20))
     tail.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(t_i[0] - 10, DESC - 100, cx + rx + 10, cy + ry)))
     tail.cut(pen_side(cx - rx - 20, cx - 10, cx - rx, cy - 4))

@@ -45,7 +45,8 @@ h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; 
 Curves are built from superellipses (`K_OUT`, `K_IN`: flatter sides, harder
 corners) and arches squared by `ARCH_K`. Built from them: rings (an ellipse minus a counter),
 ellipses run off along straight pen-angle tangents into stems, and bowls
-joined by straight spines tangent to both (s, S). Stroke ends are cut on the
+joined by straight spines tangent to both (s, S). Tangents to the flatter
+shapes are found numerically, so every join stays smooth. Stroke ends are cut on the
 shared pen angle (`PEN`) or thicken into blunt, flat-faced ends whose feet
 are cut on the pen angle (a, c, f, g, j, s, C, G, J, S). Crossbars rise at
 the pen angle and widen toward their ends.

@@ -305,12 +305,30 @@ def pen_side(x0, x1, xr, yr, above=True, reach=2000):
     return contour((x0, y0), (x1, y1), (x1, yr + far), (x0, yr + far))
 
 
-def tangent(cx, cy, rx, ry, n):
-    """Where a line with outward unit normal n touches the ellipse, and the
-    line's offset (n . p) there."""
-    s = math.hypot(rx * n[0], ry * n[1])
-    p = (cx + rx * rx * n[0] / s, cy + ry * ry * n[1] / s)
-    return p, n[0] * cx + n[1] * cy + s
+_UNIT = {}
+
+
+def _unit_shape(k):
+    """Dense samples of the unit ellipse() outline drawn with fullness k."""
+    if k not in _UNIT:
+        pts = []
+        for sx, sy in ((1, 1), (-1, 1), (-1, -1), (1, -1)):
+            seg = ((sx, 0), (sx, sy * k), (sx * k, sy), (0, sy))
+            pts += [_bezier(*seg, i / 400) for i in range(400)]
+        _UNIT[k] = pts
+    return _UNIT[k]
+
+
+def tangent(cx, cy, rx, ry, n, k=K_OUT):
+    """Where a line with outward normal n touches the ellipse(cx, cy, rx,
+    ry, k), and the line's offset (n . p) there. Exact for a true ellipse,
+    sampled finely for the flatter superellipses."""
+    if k == KAPPA:
+        s = math.hypot(rx * n[0], ry * n[1])
+        return (cx + rx * rx * n[0] / s, cy + ry * ry * n[1] / s), n[0] * cx + n[1] * cy + s
+    ux, uy = max(_unit_shape(k), key=lambda u: n[0] * rx * u[0] + n[1] * ry * u[1])
+    p = (cx + rx * ux, cy + ry * uy)
+    return p, n[0] * p[0] + n[1] * p[1]
 
 
 def half_plane(p, q, reach=2000):
@@ -321,18 +339,18 @@ def half_plane(p, q, reach=2000):
                    (p[0] + ux - uy, p[1] + uy + ux), (p[0] - ux - uy, p[1] - uy + ux))
 
 
-def pen_ellipse(cx, cy, rx, ry, x_end, angle=PEN):
+def pen_ellipse(cx, cy, rx, ry, x_end, angle=PEN, k=K_OUT):
     """An ellipse whose top-right runs off along a straight tangent rising
     at `angle` (the pen angle) to x_end, like a bowl drawn up into a stem."""
-    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(angle), math.cos(angle)))
+    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(angle), math.cos(angle)), k)
     yj = ty + (x_end - tx) * math.tan(angle)
-    return Glyph().add(ellipse(cx, cy, rx, ry),
+    return Glyph().add(ellipse(cx, cy, rx, ry, k),
                        contour((tx, ty), (x_end, yj), (x_end, cy), (cx, cy)))
 
 
-def pen_line_y(cx, cy, rx, ry, x, angle=PEN):
+def pen_line_y(cx, cy, rx, ry, x, angle=PEN, k=K_OUT):
     """Height at x of pen_ellipse's tangent line."""
-    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(angle), math.cos(angle)))
+    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(angle), math.cos(angle)), k)
     return ty + (x - tx) * math.tan(angle)
 
 

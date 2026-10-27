@@ -11,10 +11,10 @@ VERSION = "0.4"
 UPM = 1000
 
 # Vertical metrics
-CAP = 680          # cap height
-XH = 476           # x-height (large, for headline legibility)
-ASC = 740          # lowercase ascenders rise above caps, an elegant touch
-DESC = -230
+CAP = 640          # cap height
+XH = 444           # x-height (large, for headline legibility)
+ASC = 700          # lowercase ascenders rise above caps, an elegant touch
+DESC = -210
 OV = 11            # overshoot of round lowercase shapes
 CAP_OV = 13        # overshoot of round capitals
 
@@ -61,9 +61,9 @@ O_THIN = THIN + 2  # thinnest point of bowls, the a's crown
 STRESS = 0         # tilt of the stress axis in degrees (0 = vertical, negative leans right)
 # Curve fullness: 0.5523 is a true ellipse; higher flattens the sides and
 # hardens the corners toward a superellipse.
-K_OUT = 0.68       # outer contours of bowls and rings
-K_IN = 0.66        # counters, a touch rounder so the thin points stay crisp
-ARCH_K = 0.74      # shoulder fullness of n m h u arches (0.56 = soft)
+K_OUT = 0.76       # outer contours of bowls and rings
+K_IN = 0.73        # counters, a touch rounder so the thin points stay crisp
+ARCH_K = 0.84      # shoulder fullness of n m h u arches (0.56 = soft)
 
 # Spacing, measured from the outermost ink (serif tips included)
 SB_STRAIGHT = 20

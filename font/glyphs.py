@@ -99,15 +99,13 @@ def i():
 
 @glyph("r", 0x72, SB_STRAIGHT, SB_ROUND - 10)
 def r():
-    # The arm is the t's hook turned upside down: it leaves the stem's two
-    # sides straight up, thins over the crown and ends on the right in the
-    # same teardrop.
-    arm = _t_hook()
-    arm.path = arm.path.transform(1, 0, 0, -1, 0, XH)
+    # The arm is a crossbar like the t's: a hairline leaving the stem at the
+    # pen angle and ending in the same heavy wedge tip.
     return Glyph().add(
         _stem(0, 0, XH),
         foot_serif(0, STEM, reach=SERIF * 1.3, left=False),
-        arm,
+        pen_bar(STEM - 20, STEM + 196, XH - 104, BAR_THIN, pivot=STEM,
+                flare=(0, BAR_TIP * 0.55), flare_len=90, ext=(0, 0)),
     )
 
 

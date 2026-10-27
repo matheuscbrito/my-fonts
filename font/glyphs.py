@@ -8,7 +8,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_H
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
-from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_diag, foot_serif,
+from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_diag, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, nib_stroke, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
@@ -356,8 +356,9 @@ def _diag_serif(x0, x1, scale=1.0, cap=False):
 
 
 def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, hair=DIAG_HAIR,
-       top=XH, thick=DIAG, cap=False):
-    """A v from a thick left and a thin right diagonal meeting in a point."""
+       top=XH, thick=DIAG, cap=False, flare=0):
+    """A v from a thick left and a thin right diagonal meeting in a point.
+    flare swells the thin diagonal toward its serifed top."""
     xa = x0 + thick / 2
     xb = x0 + span - hair / 2
     xv = x0 + span * apex
@@ -368,10 +369,14 @@ def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, 
     C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
                   D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
     g = Glyph().add(contour(A, V, E, D, C, B))
+    if flare and right_serif:
+        top_mid = ((D[0] + E[0]) / 2, top)
+        g.add(flared_stroke(top_mid, (top_mid[0] + (V[0] - E[0]) * 0.6, top + (V[1] - top) * 0.6),
+                            hair, flare0=flare))
     if left_serif:
         g.add(_diag_serif(A[0], B[0], 1.0, cap).mirror_y(top / 2))
     if right_serif:
-        g.add(_diag_serif(D[0], E[0], 0.8, cap).mirror_y(top / 2))
+        g.add(_diag_serif(D[0] - flare / 2, E[0] + flare / 2, 0.8, cap).mirror_y(top / 2))
     return g, V, E
 
 
@@ -566,17 +571,23 @@ def O():
 CAP_DIAG = CAP_STEM * 1.12      # thick capital diagonal, measured horizontally
 CAP_THIN_STEM = CAP_HAIR * 2 + 4  # thin capital stems and diagonals
 CAP_BOWL_THIN = CAP_THIN          # thinnest point of capital bowls
+CAP_FLARE = 50                    # thin capital strokes swell by this much into their serifs
 
 
-def _thin_stem(x0, top=CAP, bottom=0, head_left=True, head_right=True, foot=True):
+def _thin_stem(x0, top=CAP, bottom=0, head_left=True, head_right=True, foot=True,
+               flare_top=False, flare_foot=False):
+    """Thin capital stem; flare_top / flare_foot swell it into its serifs."""
     x1 = x0 + CAP_THIN_STEM
+    xm = (x0 + x1) / 2
     reach = CAP_SERIF * 0.85
-    g = Glyph().add(rect(x0, bottom, x1, top))
+    f0 = CAP_FLARE if flare_foot else 0
+    f1 = CAP_FLARE if flare_top else 0
+    g = Glyph().add(flared_stroke((xm, bottom), (xm, top), CAP_THIN_STEM, f0, f1))
     if head_left or head_right:
-        g.add(foot_serif(x0, x1, 0, reach, CAP_SERIF_TIP, CAP_BRACKET, head_left, head_right)
-              .mirror_y(CAP / 2))
+        g.add(foot_serif(x0 - f1 / 2, x1 + f1 / 2, 0, reach, CAP_SERIF_TIP, CAP_BRACKET,
+                         head_left, head_right).mirror_y(CAP / 2))
     if foot:
-        g.add(foot_serif(x0, x1, 0, reach, CAP_SERIF_TIP, CAP_BRACKET))
+        g.add(foot_serif(x0 - f0 / 2, x1 + f0 / 2, 0, reach, CAP_SERIF_TIP, CAP_BRACKET))
     return g
 
 
@@ -606,8 +617,8 @@ def N():
     diag_ = contour((0, CAP), (w, -CAP_OV), (w, -CAP_OV + CAP_DIAG * rise), (CAP_DIAG, CAP))
     y_r = -CAP_OV + CAP_THIN_STEM * rise  # where the right stem meets the diagonal's underside
     return Glyph().add(
-        _thin_stem(0, head_right=False), diag_,
-        _thin_stem(w - CAP_THIN_STEM, bottom=y_r, foot=False),
+        _thin_stem(0, head_right=False, flare_foot=True), diag_,
+        _thin_stem(w - CAP_THIN_STEM, bottom=y_r, foot=False, flare_top=True),
     )
 
 
@@ -621,14 +632,14 @@ def M():
     C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
                   D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
     return Glyph().add(
-        _thin_stem(0, head_right=False), contour(A, V, E, D, C, B),
+        _thin_stem(0, head_right=False, flare_foot=True), contour(A, V, E, D, C, B),
         _cap_stem(xs, head_left=False),
     )
 
 
 def _cap_v(x0, span, **kw):
     return _v(x0, span=span, top=CAP, thick=CAP_DIAG, hair=CAP_THIN_STEM, cap=True,
-              **{"apex": 0.5, "bottom": -CAP_OV * 1.6, **kw})
+              **{"apex": 0.5, "bottom": -CAP_OV * 1.6, "flare": CAP_FLARE, **kw})
 
 
 @glyph("V", 0x56, CAP_SB_STRAIGHT - 22, CAP_SB_STRAIGHT - 22)
@@ -655,7 +666,7 @@ def A():
     apex, out_l, out_r = turn(Vp), turn(E), turn((0, CAP))
     # Crossbar rising at the pen angle, flaring where it meets each leg,
     # kept inside the letter's outline.
-    yb = CAP * 0.27
+    yb = CAP * 0.29
     x0 = _line_x(apex, out_l, yb) + CAP_THIN_STEM
     x1 = _line_x(apex, out_r, yb) - CAP_DIAG
     bar = Glyph().add(pen_bar(x0, x1, yb, CAP_THIN, flare=(BAR_FLARE * 0.25, BAR_TIP * 0.6),
@@ -670,10 +681,11 @@ def X():
     h0, h1 = wd - CAP_THIN_STEM - 16, wd - 16
     return Glyph().add(
         diag((CAP_DIAG / 2 + 6, CAP), (wd - CAP_DIAG / 2 - 6, 0), CAP_DIAG),
-        diag((wd - CAP_THIN_STEM / 2 - 16, CAP), (CAP_THIN_STEM / 2 + 16, 0), CAP_THIN_STEM),
+        flared_stroke((CAP_THIN_STEM / 2 + 16, 0), (wd - CAP_THIN_STEM / 2 - 16, CAP), CAP_THIN_STEM,
+                      CAP_FLARE, CAP_FLARE),
         _diag_serif(t0, t1, cap=True).mirror_y(CAP / 2),
-        _diag_serif(h0, h1, 0.8, cap=True).mirror_y(CAP / 2),
-        _diag_serif(16, 16 + CAP_THIN_STEM, 0.8, cap=True),
+        _diag_serif(h0 - CAP_FLARE / 2, h1 + CAP_FLARE / 2, 0.8, cap=True).mirror_y(CAP / 2),
+        _diag_serif(16 - CAP_FLARE / 2, 16 + CAP_THIN_STEM + CAP_FLARE / 2, 0.8, cap=True),
         _diag_serif(wd - CAP_DIAG - 6, wd - 6, cap=True),
     )
 
@@ -689,7 +701,7 @@ def Y():
 def K():
     arm_top = CAP_STEM + 380
     low = (CAP_STEM - 10, CAP * 0.26)
-    arm = diag((arm_top, CAP), low, CAP_THIN_STEM)
+    arm = flared_stroke(low, (arm_top, CAP), CAP_THIN_STEM, 0, CAP_FLARE)
     # The leg grows out of the arm: trim it along the arm's left edge.
     l1 = (arm_top - CAP_THIN_STEM / 2, CAP)
     l2 = (low[0] - CAP_THIN_STEM / 2, low[1])
@@ -699,7 +711,8 @@ def K():
     return Glyph().add(
         _cap_stem(0),
         Glyph().add(arm, leg).clip(rect(CAP_STEM - 2, -50, 1200, CAP + 50)),
-        _diag_serif(arm_top - CAP_THIN_STEM / 2, arm_top + CAP_THIN_STEM / 2, 0.9, cap=True).mirror_y(CAP / 2),
+        _diag_serif(arm_top - (CAP_THIN_STEM + CAP_FLARE) / 2, arm_top + (CAP_THIN_STEM + CAP_FLARE) / 2, 0.9,
+                    cap=True).mirror_y(CAP / 2),
         _diag_serif(foot_x - CAP_DIAG / 2, foot_x + CAP_DIAG / 2, cap=True),
     )
 
@@ -800,7 +813,7 @@ def U():
     return Glyph().add(
         bowl_,
         rect(0, cy - 1, CAP_STEM, CAP), cap_head(0, CAP_STEM, CAP),
-        _thin_stem(w - CAP_THIN_STEM, bottom=cy - 1, foot=False),
+        _thin_stem(w - CAP_THIN_STEM, bottom=cy - 1, foot=False, flare_top=True),
     )
 
 

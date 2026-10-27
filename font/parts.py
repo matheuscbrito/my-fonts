@@ -380,6 +380,37 @@ def flared_diag(top, bottom, w, flare):
                    (rb, rt, (xt + we / 2, yt)))
 
 
+def flared_stroke(p0, p1, w, flare0=0, flare1=0, flare_len=210):
+    """A straight thin stroke between two centre points, w wide measured
+    horizontally, with horizontal ends. Like the crossbars, it runs straight
+    and then swells toward an end: flare0 / flare1 is the extra width at
+    p0 / p1 (split evenly on both sides), reached over flare_len measured
+    along y."""
+    (x0, y0), (x1, y1) = p0, p1
+    a = min(flare_len / abs(y1 - y0), 0.5)
+
+    def c(t, off):
+        return (x0 + (x1 - x0) * t + off, y0 + (y1 - y0) * t)
+
+    def side(sign):
+        h = sign * w / 2
+        f0, f1 = sign * flare0 / 2, sign * flare1 / 2
+        return [
+            c(0, h + f0),
+            (c(a * 0.18, h + f0 * 0.4), c(a * 0.5, h), c(a, h)),
+            c(1 - a, h),
+            (c(1 - a * 0.5, h), c(1 - a * 0.18, h + f1 * 0.4), c(1, h + f1)),
+        ]
+
+    left, right = side(-1), side(1)
+    # right side runs back from p1 to p0
+    back = [right[3][2],
+            (right[3][1], right[3][0], right[2]),
+            right[1][2],
+            (right[1][1], right[1][0], right[0])]
+    return contour(*left, *back)
+
+
 def intersect(p1, p2, p3, p4):
     """Intersection of line p1-p2 with line p3-p4."""
     d = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0])

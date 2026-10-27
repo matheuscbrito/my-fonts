@@ -1,10 +1,12 @@
 """Reusable letter parts: serifs, arches, bowls, terminals."""
 import math
 
+import pathops
+
 from .draw import KAPPA, Glyph, circle, contour, ellipse
 from .params import (ARCH_THIN, BRACKET, CAP_BRACKET, CAP_SERIF, CAP_SERIF_TIP,
                      HEAD, HEAD_SLOPE, K_IN, K_OUT, O_THIN, OV, SERIF,
-                     BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, PEN, SERIF_TIP, STEM, STRESS)
+                     BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, HAIR, PEN, SERIF_TIP, STEM, STRESS)
 
 
 def foot_serif(x0, x1, y=0, reach=SERIF, tip=SERIF_TIP, bracket=BRACKET,
@@ -203,3 +205,97 @@ def bowl(stem_edge, side, width, top, stem=STEM, ov=OV, thin=O_THIN):
 
 def ball(cx, cy, r):
     return circle(cx, cy, r)
+
+
+def _bezier(p0, c1, c2, p3, t):
+    mt = 1 - t
+    return tuple(mt ** 3 * a + 3 * mt * mt * t * b + 3 * mt * t * t * d + t ** 3 * e
+                 for a, b, d, e in zip(p0, c1, c2, p3))
+
+
+def _hull(pts):
+    """Convex hull, counter-clockwise (monotone chain)."""
+    pts = sorted(set(pts))
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower, upper = [], []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def nib_stroke(segments, width=STEM, height=HAIR, angle=0, taper=(0, 0), samples=40):
+    """Sweep a flat broad-nib pen (a width x height ellipse turned by
+    `angle` degrees) along a chain of cubic segments (p0, c1, c2, p3).
+    Strokes moving up and down come out `width` thick, sideways ones
+    `height` thin, like a real pen. taper = (start, end) fractions of the
+    stroke over which the nib narrows to nothing, for pen lifts."""
+    centres = []
+    for n, seg in enumerate(segments):
+        for i in range(0 if n == 0 else 1, samples + 1):
+            centres.append(_bezier(*seg, i / samples))
+    a = math.radians(angle)
+    ux, uy = math.cos(a), math.sin(a)
+    vx, vy = -uy * height / 2, ux * height / 2
+    last = len(centres) - 1
+
+    def corners(i):
+        u = i / last
+        s = 1.0
+        if taper[0] and u < taper[0]:
+            s = max(0.12, u / taper[0])
+        if taper[1] and u > 1 - taper[1]:
+            s = max(0.12, (1 - u) / taper[1])
+        hx, hy = ux * width * s / 2, uy * width * s / 2
+        x, y = centres[i]
+        # The nib is a thin ellipse: a flat rectangle would leave flat spots
+        # wherever the stroke runs level or upright.
+        return [(x + hx * math.cos(q) + vx * math.sin(q), y + hy * math.cos(q) + vy * math.sin(q))
+                for q in (j * math.pi / 12 for j in range(24))]
+
+    path = pathops.Path()
+    pen = path.getPen()
+    for i in range(last):
+        hull = _hull(corners(i) + corners(i + 1))
+        pen.moveTo(hull[0])
+        for p in hull[1:]:
+            pen.lineTo(p)
+        pen.closePath()
+    path.simplify(fix_winding=True)  # all hulls wind the same way: this is their union
+    g = Glyph()
+    g.path = path
+    return g
+
+
+def pen_side(x0, x1, xr, yr, above=True, reach=2000):
+    """Half-plane bounded by a line through (xr, yr) rising at the pen
+    angle, spanning x0..x1: above=True keeps what is over the line. Used to
+    clip stroke ends into pen-angle cuts."""
+    k = math.tan(PEN)
+    y0, y1 = yr + (x0 - xr) * k, yr + (x1 - xr) * k
+    far = reach if above else -reach
+    return contour((x0, y0), (x1, y1), (x1, yr + far), (x0, yr + far))
+
+
+def diag(top, bottom, w):
+    """Straight diagonal stroke between two centre points, w wide measured
+    horizontally, with horizontal ends (for v w x y k)."""
+    (xt, yt), (xb, yb) = top, bottom
+    return contour((xt - w / 2, yt), (xt + w / 2, yt), (xb + w / 2, yb), (xb - w / 2, yb))
+
+
+def intersect(p1, p2, p3, p4):
+    """Intersection of line p1-p2 with line p3-p4."""
+    d = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0])
+    a = p1[0] * p2[1] - p1[1] * p2[0]
+    b = p3[0] * p4[1] - p3[1] * p4[0]
+    return ((a * (p3[0] - p4[0]) - (p1[0] - p2[0]) * b) / d,
+            (a * (p3[1] - p4[1]) - (p1[1] - p2[1]) * b) / d)

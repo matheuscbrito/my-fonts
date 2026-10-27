@@ -7,7 +7,7 @@ import math
 
 FAMILY = "Senna Display"  # the typeface name, rename any time
 STYLE = "Regular"
-VERSION = "0.1"
+VERSION = "0.2"
 UPM = 1000
 
 # Vertical metrics

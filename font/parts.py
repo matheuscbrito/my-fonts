@@ -323,6 +323,31 @@ def pen_side(x0, x1, xr, yr, above=True, reach=2000):
     return contour((x0, y0), (x1, y1), (x1, yr + far), (x0, yr + far))
 
 
+def tangent(cx, cy, rx, ry, n):
+    """Where a line with outward unit normal n touches the ellipse, and the
+    line's offset (n . p) there."""
+    s = math.hypot(rx * n[0], ry * n[1])
+    p = (cx + rx * rx * n[0] / s, cy + ry * ry * n[1] / s)
+    return p, n[0] * cx + n[1] * cy + s
+
+
+def half_plane(p, q, reach=2000):
+    """Everything left of the directed line p -> q."""
+    d = math.hypot(q[0] - p[0], q[1] - p[1])
+    ux, uy = (q[0] - p[0]) / d * reach, (q[1] - p[1]) / d * reach
+    return contour((p[0] - ux, p[1] - uy), (p[0] + ux, p[1] + uy),
+                   (p[0] + ux - uy, p[1] + uy + ux), (p[0] - ux - uy, p[1] - uy + ux))
+
+
+def pen_ellipse(cx, cy, rx, ry, x_end):
+    """An ellipse whose top-right runs off along a straight pen-angle
+    tangent to x_end, like a bowl drawn up into a stem."""
+    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(PEN), math.cos(PEN)))
+    yj = ty + (x_end - tx) * math.tan(PEN)
+    return Glyph().add(ellipse(cx, cy, rx, ry),
+                       contour((tx, ty), (x_end, yj), (x_end, cy), (cx, cy)))
+
+
 def diag(top, bottom, w):
     """Straight diagonal stroke between two centre points, w wide measured
     horizontally, with horizontal ends (for v w x y k)."""

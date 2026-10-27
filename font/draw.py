@@ -118,6 +118,12 @@ class Glyph:
             self.path = pathops.op(self.path, _as_path(item), DIFFERENCE, fix_winding=True)
         return self
 
+    def turn(self, cx, cy):
+        """A copy turned 180 degrees around (cx, cy)."""
+        g = Glyph()
+        g.path = self.path.transform(-1, 0, 0, -1, 2 * cx, 2 * cy)
+        return g
+
     def clip(self, item):
         """Keep only the ink inside item."""
         self.path = pathops.op(self.path, _as_path(item), INTERSECTION, fix_winding=True)

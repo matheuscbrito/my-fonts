@@ -8,8 +8,8 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_HAIR, CAP_OV, 
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, foot_serif,
-                    head_serif, intersect, nib_dot, nib_stroke, pen_bar,
-                    pen_side, ring, spur, var_stroke)
+                    half_plane, head_serif, intersect, nib_dot, nib_stroke, pen_bar,
+                    pen_ellipse, pen_side, ring, spur, tangent)
 
 GLYPHS = {}  # name -> (unicode, lsb, rsb, draw function)
 
@@ -247,55 +247,72 @@ def j():
 @glyph("a", 0x61, SB_ROUND, SB_STRAIGHT)
 def a():
     xs = 250  # left edge of the stem
-    sc = xs + STEM / 2
-    k = math.tan(PEN)
-    yt = XH + OV - ARCH_THIN / 2
-    # Top: a heavy flag on the left, a hairline over the top, full weight
-    # into the stem. The flag's underside is cut on the pen angle.
-    top = var_stroke([
-        ((xs - 200, XH - 120), (xs - 196, XH - 30), (xs - 130, yt), (xs - 40, yt)),
-        ((xs - 40, yt), (xs + 30, yt), (sc, XH - 40), (sc, XH - 185)),
-    ], [76, ARCH_THIN, STEM])
-    top.cut(Glyph().add(pen_side(xs - 330, xs - 110, xs - 200, XH - 100, above=False))
-            .clip(rect(xs - 330, XH - 240, xs - 110, XH)))
-    # Bowl: its top runs straight down the pen angle from the stem, then
-    # turns into a heavy left side and a hairline base.
-    b0 = (xs + 20, XH * 0.56)
-    b1 = (xs - 130, b0[1] - 150 * k)
-    bowl_ = var_stroke([
-        (b0, (b0[0] - 50, b0[1] - 50 * k), (b1[0] + 50, b1[1] + 50 * k), b1),
-        (b1, (b1[0] - 56, b1[1] - 56 * k), (xs - 232, 175), (xs - 232, 100)),
-        ((xs - 232, 100), (xs - 232, 34), (xs - 182, -OV + 7), (xs - 110, -OV + 7)),
-        ((xs - 110, -OV + 7), (xs - 45, -OV + 7), (xs, 40), (xs + 30, 95)),
-    ], [16, 24, 96, 14, 34])
-    return Glyph().add(rect(xs, 60, xs + STEM, XH - 170), spur(xs, xs + STEM), top, bowl_)
+    # Hook: the top of a ring like c's, heavy where it turns down into the
+    # stem, its left end cut on the pen angle.
+    rx, ry, left = 172, 146, 62
+    cx, cy = xs + STEM - rx, XH + OV - ry
+    hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN, dx_in=(left - STEM) / 2)
+    hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50))
+    hook.cut(pen_side(cx - rx - 10, cx - 40, cx - rx, cy + 46, above=False))
+    # Bowl: an ellipse whose top runs off on a straight pen-angle tangent
+    # into the stem; the counter does the same, a hairline lower.
+    rx, ry = 140, 132
+    cx, cy = xs - 100, ry - OV
+    xj = xs + STEM / 2
+    n = (-math.sin(PEN), math.cos(PEN))
+    h_out = tangent(cx, cy, rx, ry, n)[1]
+    x0, x1, y0 = cx - rx + STEM * 0.94, xs + 4, -OV + O_THIN + 5
+    rxi, cxi = (x1 - x0) / 2, (x0 + x1) / 2
+    lo, hi = 20, ry * 1.5  # counter height that leaves the diagonal ARCH_THIN + 2 thick
+    for _ in range(30):
+        mid = (lo + hi) / 2
+        if tangent(cxi, y0 + mid, rxi, mid, n)[1] < h_out - ARCH_THIN - 2:
+            lo = mid
+        else:
+            hi = mid
+    bowl_ = pen_ellipse(cx, cy, rx, ry, xj).cut(pen_ellipse(cxi, y0 + lo, rxi, lo, xj))
+    return Glyph().add(bowl_, hook, rect(xs, 60, xs + STEM, XH + OV - 146 + 1), spur(xs, xs + STEM))
 
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)
 def s():
-    cx, cy = 190, XH / 2
-    yt = XH + OV - 7
-    # Upper half of the centre line; the lower half is the same turned 180°,
-    # so the spine is one continuous sweep through the centre.
-    upper = [
-        ((326, 420), (306, 466), (250, yt), (190, yt)),
-        ((190, yt), (115, yt), (58, 440), (58, 372)),
-        ((58, 372), (58, 300), (130, 268), (cx, cy)),
-    ]
-
-    def turn(p):
-        return (2 * cx - p[0], 2 * cy - p[1])
-
-    lower = [tuple(turn(p) for p in reversed(seg)) for seg in reversed(upper)]
-    # Hairline arcs, a heavy spine.
-    body = var_stroke(upper + lower, [14, 13, 92, 118, 92, 13, 14])
-    # Beak: a vertical wedge hanging from the top terminal, its tip cut on
-    # the pen angle. The bottom terminal gets the same beak turned 180°.
-    beak = contour(
-        (316, 454), (342, 440), (344, 352), (328, 346),
-        ((328, 372), (322, 396), (316, 412)),
-    )
-    return Glyph().add(body, beak, beak.rotate(180, cx, cy))
+    # Two elliptical bowls joined by a straight spine: each bowl's outer
+    # ellipse touches one edge of the spine and its counter the other, so
+    # every edge runs on smoothly. The lower half is the upper turned 180°.
+    C = (190, XH / 2)
+    W = 98                    # spine weight, measured across
+    fall = math.radians(36)   # the spine falls to the right at this angle
+    n = (math.sin(fall), math.cos(fall))
+    nC = n[0] * C[0] + n[1] * C[1]
+    rx, ry = 168, 136
+    cy = XH + OV - ry
+    s_o = math.hypot(rx * n[0], ry * n[1])
+    cx = (nC - W / 2 + s_o - n[1] * cy) / n[0]
+    t_o = tangent(cx, cy, rx, ry, (-n[0], -n[1]))[0]
+    # Counter: a hairline top, heavy left side, lighter right side.
+    left, right = 92, 34
+    rxi, cxi = rx - (left + right) / 2, cx + (left - right) / 2
+    top_i = XH + OV - HAIR - 3
+    lo, hi = 20, ry
+    for _ in range(30):
+        mid = (lo + hi) / 2
+        if -tangent(cxi, top_i - mid, rxi, mid, (-n[0], -n[1]))[1] > nC + W / 2:
+            lo = mid
+        else:
+            hi = mid
+    cyi = top_i - lo
+    t_i = tangent(cxi, cyi, rxi, lo, (-n[0], -n[1]))[0]
+    upper = Glyph().add(ellipse(cx, cy, rx, ry)).cut(ellipse(cxi, cyi, rxi, lo))
+    # Drop the bowl's bottom past the spine joint, and cut the terminal.
+    upper.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(-1000, -1000, 1000, cy)))
+    # Beak: the terminal thickens into a slab with a flat outer face, its
+    # foot cut on the pen angle.
+    xe, yc = cx + rx * 0.94, cy - ry * 0.04
+    upper.add(Glyph().add(pen_side(xe - 40, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    upper.cut(pen_side(cx + 20, cx + rx + 40, xe, yc, above=False), rect(xe, yc - 200, xe + 100, cy + ry))
+    turn = lambda p: (2 * C[0] - p[0], 2 * C[1] - p[1])
+    spine = contour(t_o, turn(t_i), turn(t_o), t_i)
+    return Glyph().add(upper, upper.turn(*C), spine)
 
 
 @glyph("g", 0x67, SB_ROUND, SB_ROUND - 10)
@@ -303,25 +320,15 @@ def g():
     ry = 168
     cy = XH + OV - ry
     upper = ring(172, cy, 156, ry, 156 - STEM * 0.9)
-    # Ear: a hairline off the bowl that turns down into a pen-cut flag.
-    ear = var_stroke([
-        ((270, XH - 8), (300, XH + 8), (330, XH + 18), (362, XH + 18)),
-        ((362, XH + 18), (396, XH + 18), (414, XH - 4), (414, XH - 62)),
-    ], [16, 14, 74])
-    ear.cut(Glyph().add(pen_side(360, 480, 414, XH - 42, above=False))
-            .clip(rect(360, XH - 140, 480, XH + 40)))
-    # Link and lower loop: hairline link, heavy right side, hairline base,
-    # medium left side closing back into the link.
-    yb = DESC - OV + 7
-    loop = var_stroke([
-        ((128, cy - ry + 12), (92, 138), (74, 108), (100, 84)),
-        ((100, 84), (128, 66), (190, 62), (250, 62)),
-        ((250, 62), (330, 62), (440, 50), (440, -80)),
-        ((440, -80), (440, -180), (345, yb), (230, yb)),
-        ((230, yb), (105, yb), (25, -190), (25, -120)),
-        ((25, -120), (25, -50), (65, 40), (125, 60)),
-    ], [22, 18, 13, 104, 13, 84, 18])
-    return Glyph().add(upper, ear, loop)
+    # Ear: a pen-angle bar off the bowl's shoulder, swelling at its tip.
+    ear = pen_bar(285, 400, XH - 22, HAIR + 2, pivot=285, flare=(0, BAR_TIP * 0.6),
+                  flare_len=60, ext=(40, 0))
+    # Lower loop: a ring heavy on the right, joined by a straight hairline.
+    top, bot = 74, DESC - OV
+    ryl = (top - bot) / 2
+    loop = ring(228, top - ryl, 214, ryl, 214 - STEM * 0.72, thin=O_THIN, dx_in=-STEM * 0.28)
+    link = diag((146, cy - ry + 8), (120, 44), HAIR + 5)
+    return Glyph().add(upper, ear, link, loop)
 
 
 # ------------------------------------------------- lowercase: straight diagonals

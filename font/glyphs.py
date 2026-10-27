@@ -8,7 +8,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_H
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
-from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_stroke, foot_serif,
+from .parts import (arch, bowl, cap_foot, cap_head, diag, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
@@ -197,6 +197,26 @@ def q():
 
 # ------------------------------------------------- lowercase: pen-drawn curves
 
+_CORNERS = {"top_right": None, "top_left": (-1, 1), "bottom_left": (-1, -1)}
+
+
+def _blunt_end(hook, cx, cy, rx, ry, yc, width, corner="top_right"):
+    """Blunt terminal for a hook cut from the ring (cx, cy, rx, ry): the
+    stroke thickens into a slab with a flat outer face and a foot cut on
+    the pen angle, like the s and c. It is drawn at the ring's top right
+    and mirrored or turned into the other corners; yc is the foot's height
+    at the face, measured as if at the top right."""
+    flip = _CORNERS[corner]
+    if flip:
+        hook.path = hook.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
+    xe = cx + rx * 0.94
+    hook.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    hook.cut(rect(xe, cy - ry - 10, xe + 200, cy + ry + 10))
+    if flip:
+        hook.path = hook.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
+    return hook
+
+
 @glyph("t", 0x74, SB_STRAIGHT, SB_ROUND - 14)
 def t():
     s = STEM / 2
@@ -221,15 +241,14 @@ def t():
 def f():
     # Hook: the a's hook mirrored. The top of a ring leaves the stem's two
     # sides straight up, thins over the crown and ends on the right in a
-    # teardrop.
-    rx, ry, right = 150, 128, 38
+    # blunt end.
+    rx, ry, right = 150, 128, 44
     cx, cy = rx, ASC + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + right) / 2, thin=O_THIN + 2, dx_in=(STEM - right) / 2)
-    hook.clip(rect(-10, cy, cx + rx + 10, ASC + 50)).cut(rect(cx, cy - 10, cx + rx + 10, cy + 48))
-    rb = 50
-    ball = drop(cx + rx - rb - 4, cy + 28, rb, angle=40, length=rb * 2.3)
+    hook.clip(rect(-10, cy, cx + rx + 10, ASC + 50))
+    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 50)
     return Glyph().add(
-        rect(0, 0, STEM, cy + 1), foot_serif(0, STEM, reach=SERIF * 1.2), hook, ball,
+        rect(0, 0, STEM, cy + 1), foot_serif(0, STEM, reach=SERIF * 1.2), hook,
         pen_bar(-80, STEM + 140, XH - 34, BAR_THIN, pivot=STEM / 2,
                 flare=(BAR_FLARE * 0.5, BAR_TIP * 0.55), flare_len=80),
     )
@@ -238,16 +257,13 @@ def f():
 @glyph("j", 0x6A, SB_STRAIGHT - 20, SB_STRAIGHT)
 def j():
     # Hook: the J's at lowercase size, the lower half of a ring leaving the
-    # stem straight down and ending on the left in a teardrop.
-    rx, ry, left = 146, 124, 46
+    # stem straight down and ending on the left in a blunt end.
+    rx, ry, left = 146, 124, 50
     cx, cy = STEM - rx, DESC - OV + ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
-    rb = 46
-    # The bowl is shallower than J's, so keep the tail inside its outline.
-    tear = Glyph().add(drop(cx - rx + rb, cy, rb, angle=196, length=rb * 2.4)).clip(
-        Glyph().add(ellipse(cx, cy, rx, ry), rect(cx - rx - 10, cy, cx, cy + rb + 10)))
-    return Glyph().add(_stem(0, cy - 1, XH, foot=False), hook, tear, nib_dot(STEM / 2, XH + 190, 132))
+    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 52, "bottom_left")
+    return Glyph().add(_stem(0, cy - 1, XH, foot=False), hook, nib_dot(STEM / 2, XH + 190, 132))
 
 
 @glyph("a", 0x61, SB_ROUND, SB_STRAIGHT - 10)
@@ -255,13 +271,12 @@ def a():
     xs = 250  # left edge of the stem
     k = math.tan(PEN)
     # Hook: the top of a ring like c's, swelling from a hairline crown into
-    # a heavy shoulder, and ending on the left in a teardrop.
-    rx, ry, left = 186, 150, 40
+    # a heavy shoulder, and ending on the left in a blunt end.
+    rx, ry, left = 186, 150, 50
     cx, cy = xs + STEM - rx, XH + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN + 2, dx_in=(left - STEM) / 2)
-    hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50)).cut(rect(cx - rx - 10, cy - 10, cx, cy + 50))
-    rb = 58  # teardrop: a ball whose tail runs up into the hook's hairline
-    ball = drop(cx - rx + rb + 4, cy + 30, rb, angle=-40, length=rb * 2.3)
+    hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50))
+    _blunt_end(hook, cx, cy, rx, ry, cy + 6, 58, "top_left")
     # Bowl: a wide ellipse whose top runs off on a pen-angle tangent into
     # the stem. The counter is narrow and climbs into the stem more steeply,
     # so the diagonal is a hairline at the stem and swells to the left.
@@ -284,7 +299,7 @@ def a():
     # sharp spur, its upper edge running straight back into the stem.
     xt = xs + STEM + 78
     foot = contour((xs, -OV), (xt, -OV + (xt - xs) * k), (xs + STEM, 92), (xs, 92))
-    return Glyph().add(bowl_, hook, ball, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
+    return Glyph().add(bowl_, hook, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
 
 
 def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
@@ -333,15 +348,13 @@ def s():
 def g():
     # The q's bowl and stem, the stem running down into the j's hook: the
     # lower half of a ring as wide as the bowl, ending on the left in a
-    # teardrop.
+    # blunt end.
     rx, ry, left = 214, 136, 52
     cx, cy = STEM - rx, DESC - OV + ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
-    rb = 50
-    tear = Glyph().add(drop(cx - rx + rb, cy, rb, angle=196, length=rb * 2.4)).clip(
-        Glyph().add(ellipse(cx, cy, rx, ry), rect(cx - rx - 10, cy, cx, cy + rb + 10)))
-    return Glyph().add(bowl(0, -1, BOWL, XH), rect(0, cy - 1, STEM, XH - OV), hook, tear)
+    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 56, "bottom_left")
+    return Glyph().add(bowl(0, -1, BOWL, XH), rect(0, cy - 1, STEM, XH - OV), hook)
 
 
 # ------------------------------------------------- lowercase: straight diagonals
@@ -831,15 +844,12 @@ def J():
     rx, cy, left = 210, 168, 60  # a shallow bowl keeps the bottom flat
     cx = x1 - rx
     # Hook: the lower half of a ring leaving the stem straight down, ending
-    # on the left in a teardrop, the a's terminal turned upside down.
+    # on the left in a blunt end, the a's terminal turned upside down.
     hook = ring(cx, cy, rx, cy + CAP_OV, rx - (CAP_STEM + left) / 2, thin=CAP_BOWL_THIN,
                 dx_in=(left - CAP_STEM) / 2)
     hook.clip(rect(cx - rx - 10, -100, x1 + 10, cy))
-    rb = 54
-    # The ball's leftmost point is the ring's, so the outer edge runs on
-    # unbroken; the tail hugs the ring's inner edge.
-    tear = drop(cx - rx + rb, cy, rb, angle=192, length=rb * 2.6)
-    return Glyph().add(hook, tear, rect(x0, cy - 1, x1, CAP), cap_head(x0, x1, CAP))
+    _blunt_end(hook, cx, cy, rx, cy + CAP_OV, cy + 6, 64, "bottom_left")
+    return Glyph().add(hook, rect(x0, cy - 1, x1, CAP), cap_head(x0, x1, CAP))
 
 
 @glyph("D", 0x44, CAP_SB_STRAIGHT, CAP_SB_ROUND)

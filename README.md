@@ -45,8 +45,8 @@ h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; 
 Curves are built from true ellipses: rings (an ellipse minus a counter),
 ellipses run off along straight pen-angle tangents into stems, and bowls
 joined by straight spines tangent to both (s, S). Stroke ends are cut on the
-shared pen angle (`PEN`), finish in teardrops (a, J), or thicken into
-flat-faced beaks (s, S, c, C, G). Crossbars rise at the pen angle and flare at
+shared pen angle (`PEN`) or thicken into blunt, flat-faced ends whose feet
+are cut on the pen angle (a, c, f, g, j, s, C, G, J, S). Crossbars rise at the pen angle and flare at
 their ends.
 
 The a is the model for the weights in `params.py`. Curves run heavier than

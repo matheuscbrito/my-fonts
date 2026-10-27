@@ -750,16 +750,27 @@ def G():
     rx, ry, g = _c_ring(330)
     cx = rx
     yt = CAP * 0.64
-    yg = CAP * 0.44  # top of the short stem
     xe = _beak(g, cx, rx, ry, yt)
-    xs1 = cx + rx - 4
+    # A short stem whose outer edge carries on straight down from the
+    # bowl's widest point, with a spur at the foot. Its head is the u's
+    # wedge: the top runs straight up the pen angle from the tip to the
+    # stem's corner, and the underside sweeps down onto the bowl's inner
+    # edge where it meets the stem.
+    xs1 = cx + rx
     xs0 = xs1 - CAP_STEM
+    y_ink = next(y for y in range(0, 400) if g.path.contains((xs0 - 2, y)))  # bowl's outer edge
+    y_join = next(y for y in range(y_ink, 400) if not g.path.contains((xs0 - 2, y)))  # its inner edge
+    reach = 84
+    tip = (xs0 - reach, y_join + 74)
+    yg = tip[1] + (CAP_STEM + reach) * math.tan(PEN)
     g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
-          .clip(rect(cx + 20, yg, cx + rx + 60, CAP)))
-    # A short stem on the bowl's right: the u's diagonal head wedge on top,
-    # a spur at the foot.
-    y0 = 36
-    return g.add(rect(xs0, y0 + 60, xs1, yg - 60), head_serif(xs0, xs1, yg), spur(xs0, xs1, y0))
+          .clip(rect(cx + 20, yg - 40, cx + rx + 60, CAP)))
+    head = contour(
+        (xs1, yg), tip, (tip[0], tip[1] - CAP_SERIF_TIP),
+        ((xs0 - reach * 0.5, tip[1] - 14), (xs0 - 6, tip[1] - 40), (xs0, y_join - 6)),
+        (xs1, y_join - 6),
+    )
+    return g.add(rect(xs0, 60, xs1, y_join), head, spur(xs0, xs1, 0))
 
 
 @glyph("Q", 0x51, CAP_SB_ROUND, -70)  # the tail tucks under the next letter
@@ -803,9 +814,11 @@ def J():
     # on the left in a teardrop, the a's terminal turned upside down.
     hook = ring(cx, cy, rx, cy + CAP_OV, rx - (CAP_STEM + left) / 2, thin=CAP_BOWL_THIN,
                 dx_in=(left - CAP_STEM) / 2)
-    hook.clip(rect(cx - rx - 10, -100, x1 + 10, cy)).cut(rect(cx - rx - 10, cy - 40, cx, cy + 10))
+    hook.clip(rect(cx - rx - 10, -100, x1 + 10, cy))
     rb = 54
-    tear = drop(cx - rx + rb, cy + 6, rb, angle=188, length=rb * 2.6)
+    # The ball's leftmost point is the ring's, so the outer edge runs on
+    # unbroken; the tail hugs the ring's inner edge.
+    tear = drop(cx - rx + rb, cy, rb, angle=192, length=rb * 2.6)
     return Glyph().add(hook, tear, rect(x0, cy - 1, x1, CAP), cap_head(x0, x1, CAP))
 
 

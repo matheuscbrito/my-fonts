@@ -8,7 +8,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_H
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
-from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_diag, flared_stroke, foot_serif,
+from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
@@ -329,20 +329,19 @@ def s():
     return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 38, O_THIN + 2, 42)
 
 
-@glyph("g", 0x67, SB_ROUND, SB_ROUND - 10)
+@glyph("g", 0x67, SB_ROUND, SB_STRAIGHT)
 def g():
-    ry = 168
-    cy = XH + OV - ry
-    upper = ring(172, cy, 160, ry, 160 - ROUND)
-    # Ear: a pen-angle bar off the bowl's shoulder, swelling at its tip.
-    ear = pen_bar(285, 400, XH - 24, BAR_THIN - 2, pivot=285, flare=(0, BAR_TIP * 0.6),
-                  flare_len=60, ext=(40, 0))
-    # Lower loop: a ring heavy on the right, joined by a straight hairline.
-    top, bot = 74, DESC - OV
-    ryl = (top - bot) / 2
-    loop = ring(228, top - ryl, 214, ryl, 214 - ROUND * 0.76, dx_in=-ROUND * 0.26)
-    link = flared_diag((146, cy - ry + 10), (120, 40), THIN, 34)
-    return Glyph().add(upper, ear, link, loop)
+    # The q's bowl and stem, the stem running down into the j's hook: the
+    # lower half of a ring as wide as the bowl, ending on the left in a
+    # teardrop.
+    rx, ry, left = 214, 136, 52
+    cx, cy = STEM - rx, DESC - OV + ry
+    hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
+    hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
+    rb = 50
+    tear = Glyph().add(drop(cx - rx + rb, cy, rb, angle=196, length=rb * 2.4)).clip(
+        Glyph().add(ellipse(cx, cy, rx, ry), rect(cx - rx - 10, cy, cx, cy + rb + 10)))
+    return Glyph().add(bowl(0, -1, BOWL, XH), rect(0, cy - 1, STEM, XH - OV), hook, tear)
 
 
 # ------------------------------------------------- lowercase: straight diagonals

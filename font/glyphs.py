@@ -756,13 +756,10 @@ def G():
     xs0 = xs1 - CAP_STEM
     g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
           .clip(rect(cx + 20, yg, cx + rx + 60, CAP)))
-    # A short stem on the bowl's right, ending at the foot in a spur like
-    # the lowercase ones, with a pen-angle bar on top flaring to the left.
+    # A short stem on the bowl's right: the u's diagonal head wedge on top,
+    # a spur at the foot.
     y0 = 36
-    stem = Glyph().add(rect(xs0, y0 + 60, xs1, yg), spur(xs0, xs1, y0))
-    bar = pen_bar(xs0 - 130, xs1, yg - 4, CAP_HAIR + 8, pivot=xs1,
-                  flare=(BAR_FLARE * 0.5, 0), flare_len=80, ext=(0, 0))
-    return g.add(stem, Glyph().add(bar).clip(rect(xs0 - 200, 0, xs1, CAP)))
+    return g.add(rect(xs0, y0 + 60, xs1, yg - 60), head_serif(xs0, xs1, yg), spur(xs0, xs1, y0))
 
 
 @glyph("Q", 0x51, CAP_SB_ROUND, -70)  # the tail tucks under the next letter
@@ -800,7 +797,7 @@ def U():
 def J():
     x0 = 230
     x1 = x0 + CAP_STEM
-    rx, cy, left = 210, 230, 60
+    rx, cy, left = 210, 168, 60  # a shallow bowl keeps the bottom flat
     cx = x1 - rx
     # Hook: the lower half of a ring leaving the stem straight down, ending
     # on the left in a teardrop, the a's terminal turned upside down.

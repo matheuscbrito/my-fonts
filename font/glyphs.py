@@ -99,23 +99,15 @@ def i():
 
 @glyph("r", 0x72, SB_STRAIGHT, SB_ROUND - 10)
 def r():
-    # The arm is the n's arch, narrowed, with its shoulder cut off on the pen
-    # diagonal, so r and n share one curve.
-    xr0 = STEM + 132
-    xr1 = xr0 + STEM * 0.85
-    k = math.tan(PEN)
-    y_cut = XH * 0.82  # height of the cut at the shoulder's outer edge: the arm ends up top
-    keep = contour(
-        (STEM - 5, y_cut - (xr1 - STEM + 5) * k),
-        (xr1 + 60, y_cut + 60 * k),
-        (xr1 + 60, XH + 100),
-        (STEM - 5, XH + 100),
-    )
-    shoulder = Glyph().add(arch(STEM, xr0, xr1, XH)).clip(keep)
+    # The arm is the t's hook turned upside down: it leaves the stem's two
+    # sides straight up, thins over the crown and ends on the right in the
+    # same teardrop.
+    arm = _t_hook()
+    arm.path = arm.path.transform(1, 0, 0, -1, 0, XH)
     return Glyph().add(
         _stem(0, 0, XH),
         foot_serif(0, STEM, reach=SERIF * 1.3, left=False),
-        shoulder,
+        arm,
     )
 
 
@@ -222,6 +214,20 @@ def _tear_end(g, cx, cy, rx, ry, yc, rb, corner="top_right", length=2.4, cut=Tru
     return g
 
 
+T_HOOK = (150, 164, 30)  # the t's hook: half-width, height, weight of its rising right side
+
+
+def _t_hook():
+    """The t's hook, shared with r: the lower half of a ring whose sides
+    leave a stem at x = 0 straight down, ending on the right in a teardrop."""
+    rx, ry, right = T_HOOK
+    cy = ry - OV
+    dx_in = (STEM - right) / 2
+    hook = ring(rx, cy, rx, ry, rx + dx_in - STEM, thin=O_THIN + 4, dx_in=dx_in)
+    hook.clip(rect(-10, -100, 2 * rx + 10, cy))
+    return _tear_end(hook, rx, cy, rx, ry, 2 * cy - 100, 42, "bottom_right")
+
+
 @glyph("t", 0x74, SB_STRAIGHT, SB_ROUND - 14)
 def t():
     s = STEM / 2
@@ -229,12 +235,8 @@ def t():
     # Hook: the lower half of a ring whose outer and inner edges leave the
     # stem's two sides straight down, thinning round the bottom and ending
     # in a teardrop.
-    rx, ry, right = 150, 164, 30
-    cy = ry - OV
-    dx_in = (STEM - right) / 2
-    hook = ring(rx, cy, rx, ry, rx + dx_in - STEM, thin=O_THIN + 4, dx_in=dx_in)
-    hook.clip(rect(-10, -100, 2 * rx + 10, cy))
-    _tear_end(hook, rx, cy, rx, ry, 2 * cy - 100, 42, "bottom_right")
+    cy = T_HOOK[1] - OV
+    hook = _t_hook()
     stem = Glyph().add(rect(0, cy - 1, STEM, top + 10)).clip(pen_side(-10, STEM + 10, STEM, top, above=False))
     return Glyph().add(
         stem, hook,
@@ -308,17 +310,30 @@ def a():
     return Glyph().add(bowl_, hook, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
 
 
-def _s(C, top, rx, ry, W, left, right, hair, tear, fall=math.radians(36)):
+def _s(C, top, rx, ry, W, left, right, hair, tear, fall=None):
     """Two elliptical bowls joined by a straight spine: each bowl's outer
     ellipse touches one edge of the spine and its counter the other, so
     every edge runs on smoothly. The lower half is the upper turned 180°
     around C. W is the spine weight measured across; left/right are the
     upper bowl's side weights; tear is the teardrop's radius."""
+    cy = top - ry
+
+    def bowl_x(fall):
+        n = (math.sin(fall), math.cos(fall))
+        nC = n[0] * C[0] + n[1] * C[1]
+        return (nC - W / 2 + tangent(0, 0, rx, ry, n)[1] - n[1] * cy) / n[0]
+
+    if fall is None:
+        # The spine's slope that stacks both bowls on C, so the s stands
+        # upright instead of leaning.
+        lo, hi = math.radians(5), math.radians(80)
+        for _ in range(40):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if bowl_x(mid) < C[0] else (lo, mid)
+        fall = (lo + hi) / 2
     n = (math.sin(fall), math.cos(fall))
     nC = n[0] * C[0] + n[1] * C[1]
-    cy = top - ry
-    s_o = tangent(0, 0, rx, ry, n)[1]
-    cx = (nC - W / 2 + s_o - n[1] * cy) / n[0]
+    cx = bowl_x(fall)
     t_o = tangent(cx, cy, rx, ry, (-n[0], -n[1]))[0]
     # Counter: a hairline top, heavy left side, lighter right side.
     rxi, cxi = rx - (left + right) / 2, cx + (left - right) / 2
@@ -362,8 +377,8 @@ def g():
 
 # ------------------------------------------------- lowercase: straight diagonals
 
-DIAG = STEM * 1.1     # thick diagonal, measured horizontally
-DIAG_HAIR = HAIR + 8      # thin diagonal
+DIAG = STEM * 1.24    # thick diagonal, measured horizontally (open shapes need the extra)
+DIAG_HAIR = HAIR + 14     # thin diagonal
 FLARE = 40                # thin diagonals swell by this much into their serifs
 FLARE_LEN = 150           # over this much of their height (scaled up for capitals)
 
@@ -434,15 +449,15 @@ def y():
     rx, ry = 120, 108
     cy = DESC - OV + ry
     cx = touching(rx, ry, cy, 0, K_OUT)
-    rxi, ryi = 50, ry - 22
+    rxi, ryi = 84, ry - 22  # wide counter: the tail thins before it swells into the teardrop
     cyi = DESC - OV + 16 + ryi
     cxi = touching(rxi, ryi, cyi, hair, K_IN)
     t_o = tangent(cx, cy, rx, ry, nrm)[0]
     t_i = tangent(cxi, cyi, rxi, ryi, nrm, K_IN)[0]
     tail = Glyph().add(ellipse(cx, cy, rx, ry, K_OUT)).cut(ellipse(cxi, cyi, rxi, ryi, K_IN))
-    tail.clip(rect(cx - rx - 10, DESC - 100, cx + rx + 10, cy + 20))
+    tail.clip(rect(cx - rx - 10, DESC - 100, cx + rx + 10, cy))
     tail.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(t_i[0] - 10, DESC - 100, cx + rx + 10, cy + ry)))
-    tail.cut(pen_side(cx - rx - 20, cx - 10, cx - rx, cy - 4))
+    _tear_end(tail, cx, cy, rx, ry, cy, 42, "bottom_left")
     tail_line = Glyph().add(diag((E[0] - hair / 2, XH), (E[0] - hair / 2 + dx * (XH - DESC),
                                                               DESC), hair))
     tail_line.cut(half_plane(t_o, t_i))
@@ -489,8 +504,8 @@ def k():
 @glyph("z", 0x7A, SB_STRAIGHT, SB_STRAIGHT)
 def z():
     wd = 400
-    bar = BAR_THIN
-    slant = STEM * 1.16  # the thick diagonal, measured horizontally
+    bar = BAR_THIN + 6
+    slant = STEM * 1.3  # the thick diagonal, measured horizontally
     return Glyph().add(
         rect(0, XH - bar, wd, XH),
         contour((wd - slant * DIAG_TAPER[0], XH - bar), (wd, XH - bar), (slant * DIAG_TAPER[1], bar), (0, bar)),

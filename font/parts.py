@@ -361,6 +361,25 @@ def diag(top, bottom, w):
     return contour((xt - w / 2, yt), (xt + w / 2, yt), (xb + w / 2, yb), (xb - w / 2, yb))
 
 
+def flared_diag(top, bottom, w, flare):
+    """A hairline between two centre points that swells toward both ends,
+    like the flared crossbars: w wide in the middle, w + flare at the ends
+    (measured horizontally)."""
+    (xt, yt), (xb, yb) = top, bottom
+    we = w + flare
+    pull = (we - 4 * w) / 6  # control offset that puts the waist at w
+
+    def side(sign):
+        ct = (xt + (xb - xt) * 0.3 - sign * pull, yt + (yb - yt) * 0.3)
+        cb = (xt + (xb - xt) * 0.7 - sign * pull, yt + (yb - yt) * 0.7)
+        return ct, cb
+
+    lt, lb = side(1)
+    rt, rb = side(-1)
+    return contour((xt - we / 2, yt), (lt, lb, (xb - we / 2, yb)), (xb + we / 2, yb),
+                   (rb, rt, (xt + we / 2, yt)))
+
+
 def intersect(p1, p2, p3, p4):
     """Intersection of line p1-p2 with line p3-p4."""
     d = (p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0])

@@ -7,7 +7,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_HAIR, CAP_OV, 
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
-from .parts import (arch, bowl, cap_foot, cap_head, diag, foot_serif,
+from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_diag, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, nib_stroke, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
@@ -200,13 +200,15 @@ NIB_Y = HAIR / 2  # a nib's centre sits this far inside a horizontal edge
 def t():
     s = STEM / 2
     top = XH + 140
-    hook = nib_stroke([
-        ((s, 250), (s, 20), (s + 80, -OV + NIB_Y), (s + 150, -OV + NIB_Y)),
-        ((s + 150, -OV + NIB_Y), (s + 205, -OV + NIB_Y), (s + 232, 24), (s + 240, 92)),
-    ], taper=(0, 0.3))
-    hook.clip(Glyph().add(pen_side(s + 172, s + 400, s + 276, 76, above=False))
-              .add(rect(-200, -400, s + 172, XH)))
-    stem = Glyph().add(rect(0, 150, STEM, top + 10)).clip(pen_side(-10, STEM + 10, STEM, top, above=False))
+    # Hook: the lower half of a ring whose outer and inner edges leave the
+    # stem's two sides straight down, thinning round the bottom and ending
+    # in a pen-angle cut.
+    rx, ry, right = 150, 164, 30
+    cy = ry - OV
+    dx_in = (STEM - right) / 2
+    hook = ring(rx, cy, rx, ry, rx + dx_in - STEM, thin=O_THIN + 4, dx_in=dx_in)
+    hook.clip(rect(-10, -100, 2 * rx + 10, cy)).cut(pen_side(rx + 20, 2 * rx + 20, 2 * rx, 92))
+    stem = Glyph().add(rect(0, cy - 1, STEM, top + 10)).clip(pen_side(-10, STEM + 10, STEM, top, above=False))
     return Glyph().add(
         stem, hook,
         pen_bar(-78, STEM + 150, XH - 44, HAIR + 4, pivot=s,
@@ -249,16 +251,13 @@ def a():
     xs = 250  # left edge of the stem
     k = math.tan(PEN)
     # Hook: the top of a ring like c's, swelling from a hairline crown into
-    # a heavy shoulder, and ending on the left in a big ball whose underside
-    # is sliced off on the pen angle.
+    # a heavy shoulder, and ending on the left in a teardrop.
     rx, ry, left = 186, 150, 40
     cx, cy = xs + STEM - rx, XH + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN + 3, dx_in=(left - STEM) / 2)
-    hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50))
-    rb = 74
-    bx, by = cx - rx + rb, cy + 44
-    ball = Glyph().add(ellipse(bx, by, rb, rb * 1.04)).cut(pen_side(bx - 200, bx + 200, bx, by - rb * 0.7, above=False))
-    hook.cut(pen_side(bx - 200, bx + rb, bx, by - rb * 0.7, above=False), rect(bx - 200, cy - 10, bx, by))
+    hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50)).cut(rect(cx - rx - 10, cy - 10, cx, cy + 50))
+    rb = 58  # teardrop: a ball whose tail runs up into the hook's hairline
+    ball = drop(cx - rx + rb + 4, cy + 30, rb, angle=-40, length=rb * 2.3)
     # Bowl: a wide ellipse whose top runs off on a pen-angle tangent into
     # the stem. The counter is narrow and climbs into the stem more steeply,
     # so the diagonal is a hairline at the stem and swells to the left.
@@ -337,7 +336,7 @@ def g():
     top, bot = 74, DESC - OV
     ryl = (top - bot) / 2
     loop = ring(228, top - ryl, 214, ryl, 214 - STEM * 0.72, thin=O_THIN, dx_in=-STEM * 0.28)
-    link = diag((146, cy - ry + 8), (120, 44), HAIR + 5)
+    link = flared_diag((146, cy - ry + 10), (120, 40), HAIR + 3, 34)
     return Glyph().add(upper, ear, link, loop)
 
 
@@ -383,16 +382,33 @@ def w():
 def y():
     span = 430
     body, V, E = _v(0, span=span, bottom=-OV)
-    # The thin stroke carries on past the point into the descender.
-    dx = (V[0] - E[0]) / (XH - V[1])
-    x_end = E[0] + dx * (XH - (DESC + 90)) - DIAG_HAIR / 2
-    tail_line = diag((E[0] - DIAG_HAIR / 2, XH), (x_end, DESC + 90), DIAG_HAIR)
-    yb = DESC - OV + NIB_Y
-    tail = nib_stroke([
-        ((x_end, DESC + 92), (x_end - 14, DESC + 40), (x_end - 50, yb), (x_end - 110, yb)),
-        ((x_end - 110, yb), (x_end - 160, yb), (x_end - 190, DESC + 30), (x_end - 196, DESC + 100)),
-    ], width=STEM * 0.76, taper=(0.4, 0))
-    tail.cut(pen_side(x_end - 400, x_end - 120, x_end - 196 - 46, DESC + 72))
+    # The thin stroke carries on past the point into the descender and turns
+    # into a tail: an outer ellipse touching the stroke's right edge and a
+    # counter touching its left edge, so both edges run on without a bend.
+    dx = (V[0] - E[0]) / (XH - V[1])  # horizontal drift per unit of drop
+    nrm = (1, dx)                     # outward normal of the stroke's right side
+    xr = E[0] + dx * XH               # right edge at y = 0 (left edge is DIAG_HAIR left)
+
+    def touching(rx, ry, cy, shift):
+        # centre x that makes the ellipse touch the edge line x = xr - shift + dx*y
+        h_line = nrm[0] * (xr - shift)
+        return (h_line - nrm[1] * cy - math.hypot(rx * nrm[0], ry * nrm[1])) / nrm[0]
+
+    rx, ry = 120, 108
+    cy = DESC - OV + ry
+    cx = touching(rx, ry, cy, 0)
+    rxi, ryi = 50, ry - 22
+    cyi = DESC - OV + 16 + ryi
+    cxi = touching(rxi, ryi, cyi, DIAG_HAIR)
+    t_o = tangent(cx, cy, rx, ry, nrm)[0]
+    t_i = tangent(cxi, cyi, rxi, ryi, nrm)[0]
+    tail = Glyph().add(ellipse(cx, cy, rx, ry)).cut(ellipse(cxi, cyi, rxi, ryi))
+    tail.clip(rect(cx - rx - 10, DESC - 100, cx + rx + 10, cy + 20))
+    tail.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(t_i[0] - 10, DESC - 100, cx + rx + 10, cy + ry)))
+    tail.cut(pen_side(cx - rx - 20, cx - 10, cx - rx, cy - 4))
+    tail_line = Glyph().add(diag((E[0] - DIAG_HAIR / 2, XH), (E[0] - DIAG_HAIR / 2 + dx * (XH - DESC),
+                                                              DESC), DIAG_HAIR))
+    tail_line.cut(half_plane(t_o, t_i))
     return Glyph().add(body, tail_line, tail)
 
 

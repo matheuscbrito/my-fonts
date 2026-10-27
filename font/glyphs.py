@@ -99,13 +99,14 @@ def i():
 
 @glyph("r", 0x72, SB_STRAIGHT, SB_ROUND - 10)
 def r():
-    # The arm is a crossbar like the t's: a hairline leaving the stem at the
-    # pen angle and ending in the same heavy wedge tip.
+    # The arm is a crossbar like the t's, leaving the stem at the pen angle
+    # and ending in the same heavy wedge tip, drawn firmer since it carries
+    # the letter.
     return Glyph().add(
         _stem(0, 0, XH),
         foot_serif(0, STEM, reach=SERIF * 1.3, left=False),
-        pen_bar(STEM - 20, STEM + 196, XH - 104, BAR_THIN, pivot=STEM,
-                flare=(0, BAR_TIP * 0.55), flare_len=90, ext=(0, 0)),
+        pen_bar(STEM - 20, STEM + 196, XH - 112, BAR_THIN * 2.6, pivot=STEM,
+                flare=(0, BAR_TIP * 0.55), flare_len=110, ext=(0, 0)),
     )
 
 

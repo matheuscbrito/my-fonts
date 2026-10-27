@@ -145,10 +145,10 @@ def e():
     dx_in = 12
     bar0 = XH * 0.50  # bottom of the bar at the centre; it rises at the pen angle
     k = math.tan(PEN)
-    g = ring(cx, XH / 2, rx, ry, rx_in, dx_in=dx_in)
+    g = ring(cx, XH / 2, rx, ry, rx_in, thin=O_THIN + 5, dx_in=dx_in)
     # The bar runs from where its underside meets the counter (left flare grows
     # out of the bowl) to where it meets the outer contour (the heavy tip).
-    ry_in = ry - O_THIN
+    ry_in = ry - O_THIN - 5
 
     def yb(x):
         return bar0 + (x - cx) * k
@@ -161,7 +161,7 @@ def e():
     # hangs into the opening.
     x_l, x_r = cx + 10, cx + rx + 30
     g.cut(contour((x_l, yb(x_l)), (x_r, yb(x_r)), (x_r, XH * 0.14), (x_l, XH * 0.34)))
-    bar = Glyph().add(pen_bar(x_in, x_out, bar0, HAIR + 2, pivot=cx,
+    bar = Glyph().add(pen_bar(x_in, x_out, bar0, HAIR + 7, pivot=cx,
                               flare=(BAR_FLARE * 0.8, BAR_TIP * 0.45), flare_len=120, ext=(40, 30)))
     g.add(bar.clip(ellipse(cx, XH / 2, rx - 1, ry - 1, K_OUT)))
     return g
@@ -206,12 +206,12 @@ def t():
     rx, ry, right = 150, 164, 30
     cy = ry - OV
     dx_in = (STEM - right) / 2
-    hook = ring(rx, cy, rx, ry, rx + dx_in - STEM, thin=O_THIN + 4, dx_in=dx_in)
+    hook = ring(rx, cy, rx, ry, rx + dx_in - STEM, thin=O_THIN + 9, dx_in=dx_in)
     hook.clip(rect(-10, -100, 2 * rx + 10, cy)).cut(pen_side(rx + 20, 2 * rx + 20, 2 * rx, 92))
     stem = Glyph().add(rect(0, cy - 1, STEM, top + 10)).clip(pen_side(-10, STEM + 10, STEM, top, above=False))
     return Glyph().add(
         stem, hook,
-        pen_bar(-78, STEM + 150, XH - 44, HAIR + 4, pivot=s,
+        pen_bar(-78, STEM + 150, XH - 44, HAIR + 8, pivot=s,
                 flare=(BAR_FLARE * 0.5, BAR_TIP * 0.55), flare_len=80),
     )
 
@@ -301,7 +301,7 @@ def s():
     # Counter: a hairline top, heavy left side, lighter right side.
     left, right = 92, 34
     rxi, cxi = rx - (left + right) / 2, cx + (left - right) / 2
-    top_i = XH + OV - HAIR - 3
+    top_i = XH + OV - HAIR - 9
     lo, hi = 20, ry
     for _ in range(30):
         mid = (lo + hi) / 2
@@ -328,15 +328,15 @@ def s():
 def g():
     ry = 168
     cy = XH + OV - ry
-    upper = ring(172, cy, 156, ry, 156 - STEM * 0.9)
+    upper = ring(172, cy, 156, ry, 156 - STEM * 0.9, thin=O_THIN + 5)
     # Ear: a pen-angle bar off the bowl's shoulder, swelling at its tip.
-    ear = pen_bar(285, 400, XH - 22, HAIR + 2, pivot=285, flare=(0, BAR_TIP * 0.6),
+    ear = pen_bar(285, 400, XH - 22, HAIR + 6, pivot=285, flare=(0, BAR_TIP * 0.6),
                   flare_len=60, ext=(40, 0))
     # Lower loop: a ring heavy on the right, joined by a straight hairline.
     top, bot = 74, DESC - OV
     ryl = (top - bot) / 2
-    loop = ring(228, top - ryl, 214, ryl, 214 - STEM * 0.72, thin=O_THIN, dx_in=-STEM * 0.28)
-    link = flared_diag((146, cy - ry + 10), (120, 40), HAIR + 3, 34)
+    loop = ring(228, top - ryl, 214, ryl, 214 - STEM * 0.72, thin=O_THIN + 5, dx_in=-STEM * 0.28)
+    link = flared_diag((146, cy - ry + 10), (120, 40), HAIR + 8, 34)
     return Glyph().add(upper, ear, link, loop)
 
 
@@ -346,14 +346,14 @@ DIAG = STEM * 1.1     # thick diagonal, measured horizontally
 DIAG_HAIR = HAIR * 2  # thin diagonal
 
 
-def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None):
+def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, hair=DIAG_HAIR):
     """A v from a thick left and a thin right diagonal meeting in a point."""
     xa = x0 + DIAG / 2
-    xb = x0 + span - DIAG_HAIR / 2
+    xb = x0 + span - hair / 2
     xv = x0 + span * apex
     yv = -OV * 1.6 if bottom is None else bottom
     A, B = (xa - DIAG / 2, XH), (xa + DIAG / 2, XH)
-    D, E = (xb - DIAG_HAIR / 2, XH), (xb + DIAG_HAIR / 2, XH)
+    D, E = (xb - hair / 2, XH), (xb + hair / 2, XH)
     V = (xv, yv)
     C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
                   D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
@@ -381,13 +381,14 @@ def w():
 @glyph("y", 0x79, SB_STRAIGHT - 4, SB_STRAIGHT - 4)
 def y():
     span = 430
-    body, V, E = _v(0, span=span, bottom=-OV)
+    hair = DIAG_HAIR + 6
+    body, V, E = _v(0, span=span, bottom=-OV, hair=hair)
     # The thin stroke carries on past the point into the descender and turns
     # into a tail: an outer ellipse touching the stroke's right edge and a
     # counter touching its left edge, so both edges run on without a bend.
     dx = (V[0] - E[0]) / (XH - V[1])  # horizontal drift per unit of drop
     nrm = (1, dx)                     # outward normal of the stroke's right side
-    xr = E[0] + dx * XH               # right edge at y = 0 (left edge is DIAG_HAIR left)
+    xr = E[0] + dx * XH               # right edge at y = 0 (the left edge is hair further left)
 
     def touching(rx, ry, cy, shift):
         # centre x that makes the ellipse touch the edge line x = xr - shift + dx*y
@@ -399,15 +400,15 @@ def y():
     cx = touching(rx, ry, cy, 0)
     rxi, ryi = 50, ry - 22
     cyi = DESC - OV + 16 + ryi
-    cxi = touching(rxi, ryi, cyi, DIAG_HAIR)
+    cxi = touching(rxi, ryi, cyi, hair)
     t_o = tangent(cx, cy, rx, ry, nrm)[0]
     t_i = tangent(cxi, cyi, rxi, ryi, nrm)[0]
     tail = Glyph().add(ellipse(cx, cy, rx, ry)).cut(ellipse(cxi, cyi, rxi, ryi))
     tail.clip(rect(cx - rx - 10, DESC - 100, cx + rx + 10, cy + 20))
     tail.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(t_i[0] - 10, DESC - 100, cx + rx + 10, cy + ry)))
     tail.cut(pen_side(cx - rx - 20, cx - 10, cx - rx, cy - 4))
-    tail_line = Glyph().add(diag((E[0] - DIAG_HAIR / 2, XH), (E[0] - DIAG_HAIR / 2 + dx * (XH - DESC),
-                                                              DESC), DIAG_HAIR))
+    tail_line = Glyph().add(diag((E[0] - hair / 2, XH), (E[0] - hair / 2 + dx * (XH - DESC),
+                                                              DESC), hair))
     tail_line.cut(half_plane(t_o, t_i))
     return Glyph().add(body, tail_line, tail)
 

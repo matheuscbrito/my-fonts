@@ -346,6 +346,8 @@ def g():
 
 DIAG = STEM * 1.1     # thick diagonal, measured horizontally
 DIAG_HAIR = HAIR * 2 + 6  # thin diagonal
+FLARE = 40                # thin diagonals swell by this much into their serifs
+FLARE_LEN = 150           # over this much of their height (scaled up for capitals)
 
 
 def _diag_serif(x0, x1, scale=1.0, cap=False):
@@ -372,7 +374,7 @@ def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, 
     if flare and right_serif:
         top_mid = ((D[0] + E[0]) / 2, top)
         g.add(flared_stroke(top_mid, (top_mid[0] + (V[0] - E[0]) * 0.6, top + (V[1] - top) * 0.6),
-                            hair, flare0=flare))
+                            hair, flare0=flare, flare_len=FLARE_LEN * top / XH))
     if left_serif:
         g.add(_diag_serif(A[0], B[0], 1.0, cap).mirror_y(top / 2))
     if right_serif:
@@ -382,14 +384,14 @@ def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, 
 
 @glyph("v", 0x76, SB_STRAIGHT - 4, SB_STRAIGHT - 4)
 def v():
-    return _v(0)[0]
+    return _v(0, flare=FLARE)[0]
 
 
 @glyph("w", 0x77, SB_STRAIGHT - 4, SB_STRAIGHT - 4)
 def w():
     first, _, _ = _v(0, span=380, right_serif=False)
     offset = 380 - DIAG_HAIR / 2 - DIAG / 2  # second thick starts on the first thin
-    second, _, _ = _v(offset, span=380)
+    second, _, _ = _v(offset, span=380, flare=FLARE)
     return Glyph().add(first, second)
 
 
@@ -397,7 +399,7 @@ def w():
 def y():
     span = 430
     hair = DIAG_HAIR
-    body, V, E = _v(0, span=span, bottom=-OV, hair=hair)
+    body, V, E = _v(0, span=span, bottom=-OV, hair=hair, flare=FLARE)
     # The thin stroke carries on past the point into the descender and turns
     # into a tail: an outer ellipse touching the stroke's right edge and a
     # counter touching its left edge, so both edges run on without a bend.
@@ -432,14 +434,15 @@ def y():
 def x():
     wd = 440
     thick = diag((DIAG / 2 + 4, XH), (wd - DIAG / 2 - 4, 0), DIAG)
-    thin = diag((wd - DIAG_HAIR / 2 - 12, XH), (DIAG_HAIR / 2 + 12, 0), DIAG_HAIR)
+    thin = flared_stroke((DIAG_HAIR / 2 + 12, 0), (wd - DIAG_HAIR / 2 - 12, XH), DIAG_HAIR,
+                         FLARE, FLARE, FLARE_LEN)
     t0, t1 = 4, DIAG + 4
     h0, h1 = wd - DIAG_HAIR - 12, wd - 12
     return Glyph().add(
         thick, thin,
         foot_serif(t0, t1, reach=SERIF).mirror_y(XH / 2),
-        foot_serif(h0, h1, reach=SERIF * 0.8).mirror_y(XH / 2),
-        foot_serif(12, 12 + DIAG_HAIR, reach=SERIF * 0.8),
+        foot_serif(h0 - FLARE / 2, h1 + FLARE / 2, reach=SERIF * 0.8).mirror_y(XH / 2),
+        foot_serif(12 - FLARE / 2, 12 + DIAG_HAIR + FLARE / 2, reach=SERIF * 0.8),
         foot_serif(wd - DIAG - 4, wd - 4, reach=SERIF),
     )
 
@@ -447,7 +450,7 @@ def x():
 @glyph("k", 0x6B, SB_STRAIGHT, SB_STRAIGHT - 6)
 def k():
     arm_top = STEM + 250
-    arm = diag((arm_top, XH), (STEM - 10, XH * 0.22), DIAG_HAIR)
+    arm = flared_stroke((STEM - 10, XH * 0.22), (arm_top, XH), DIAG_HAIR, 0, FLARE, FLARE_LEN)
     # The leg grows out of the arm: trim it along the arm's left edge.
     l1 = (arm_top - DIAG_HAIR / 2, XH)
     l2 = (STEM - 10 - DIAG_HAIR / 2, XH * 0.22)
@@ -457,7 +460,8 @@ def k():
     return Glyph().add(
         _stem(0, 0, ASC),
         Glyph().add(arm, leg).clip(right_of_stem),
-        foot_serif(arm_top - DIAG_HAIR / 2, arm_top + DIAG_HAIR / 2, reach=SERIF * 0.9).mirror_y(XH / 2),
+        foot_serif(arm_top - (DIAG_HAIR + FLARE) / 2, arm_top + (DIAG_HAIR + FLARE) / 2,
+                   reach=SERIF * 0.9).mirror_y(XH / 2),
         foot_serif(STEM + 262 - DIAG / 2, STEM + 262 + DIAG / 2, reach=SERIF),
     )
 

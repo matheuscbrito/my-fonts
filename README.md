@@ -49,8 +49,12 @@ along straight pen-angle tangents into stems, and bowls joined by straight
 spines tangent to both (s, S). Where a curved stroke starts it is cut thin on
 the shared pen angle (`PEN`), as at the foot of c, e and C; where it ends it
 swells into a teardrop whose tail follows the stroke (a, c, f, g, j, s, t, C,
-G, J, S), all from one helper, `_tear_end`. Crossbars rise at the pen angle
-and widen toward their right ends.
+G, J, S), all from one helper, `_tear_end`. Straight strokes follow the
+same order: crossbars start as a hairline on the left and end in a heavy
+right tip (`BAR_FLARE`, `BAR_TIP`); thick diagonals are written downward,
+narrow at the top and heavier at the bottom (`DIAG_TAPER`), reversed in the
+A, whose legs start at the apex; thin diagonals swell only at the end they
+finish on. Thin verticals (N, M, U) keep one weight.
 
 Everything that is not a curve is drawn in straight lines: serifs are
 triangular wedges, stem heads are straight diagonal cuts, flares are straight

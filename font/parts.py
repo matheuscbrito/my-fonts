@@ -361,6 +361,14 @@ def diag(top, bottom, w):
     return contour((xt - w / 2, yt), (xt + w / 2, yt), (xb + w / 2, yb), (xb - w / 2, yb))
 
 
+def taper_diag(top, bottom, w_top, w_bot):
+    """Straight diagonal between two centre points whose width (measured
+    horizontally) grows from w_top to w_bot: a stroke pressed harder as it
+    goes."""
+    (xt, yt), (xb, yb) = top, bottom
+    return contour((xt - w_top / 2, yt), (xt + w_top / 2, yt), (xb + w_bot / 2, yb), (xb - w_bot / 2, yb))
+
+
 def flared_diag(top, bottom, w, flare):
     """A hairline between two centre points that swells toward both ends,
     like the flared crossbars: w wide in the middle, w + flare at the ends

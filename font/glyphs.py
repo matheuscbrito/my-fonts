@@ -3,13 +3,13 @@ the build script places it between its sidebearings."""
 import math
 
 from .draw import Glyph, contour, ellipse, rect
-from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_HAIR, CAP_OV, CAP_SB_ROUND,
+from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, DIAG_TAPER, CAP, CAP_BRACKET, CAP_HAIR, CAP_OV, CAP_SB_ROUND,
                      CAP_SERIF, CAP_SERIF_TIP, CAP_THIN, THIN, BAR_THIN, CAP_BAR_THIN, ROUND, CAP_ROUND,
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_IN, K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_stroke, foot_serif,
-                    half_plane, head_serif, intersect, nib_dot, pen_bar,
+                    half_plane, head_serif, intersect, taper_diag, nib_dot, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
 GLYPHS = {}  # name -> (unicode, lsb, rsb, draw function)
@@ -166,7 +166,7 @@ def e():
     x_l, x_r = cx + 10, cx + rx + 30
     g.cut(contour((x_l, yb(x_l)), (x_r, yb(x_r)), (x_r, XH * 0.14), (x_l, XH * 0.34)))
     bar = Glyph().add(pen_bar(x_in, x_out, bar0, BAR_THIN, pivot=cx,
-                              flare=(BAR_FLARE * 0.8, BAR_TIP * 0.45), flare_len=120, ext=(40, 30)))
+                              flare=(BAR_FLARE, BAR_TIP * 0.5), flare_len=130, ext=(40, 30)))
     g.add(bar.clip(ellipse(cx, XH / 2, rx - 1, ry - 1, K_OUT)))
     return g
 
@@ -239,7 +239,7 @@ def t():
     return Glyph().add(
         stem, hook,
         pen_bar(-78, STEM + 150, XH - 44, BAR_THIN, pivot=s,
-                flare=(BAR_FLARE * 0.5, BAR_TIP * 0.55), flare_len=80),
+                flare=(0, BAR_TIP * 0.55), flare_len=90),
     )
 
 
@@ -256,7 +256,7 @@ def f():
     return Glyph().add(
         rect(0, 0, STEM, cy + 1), foot_serif(0, STEM, reach=SERIF * 1.2), hook,
         pen_bar(-80, STEM + 140, XH - 34, BAR_THIN, pivot=STEM / 2,
-                flare=(BAR_FLARE * 0.5, BAR_TIP * 0.55), flare_len=80),
+                flare=(0, BAR_TIP * 0.55), flare_len=90),
     )
 
 
@@ -376,17 +376,18 @@ def _diag_serif(x0, x1, scale=1.0, cap=False):
 
 
 def _v(x0, span=430, apex=0.52, left_serif=True, right_serif=True, bottom=None, hair=DIAG_HAIR,
-       top=XH, thick=DIAG, cap=False, flare=0):
+       top=XH, thick=DIAG, cap=False, flare=0, taper=DIAG_TAPER):
     """A v from a thick left and a thin right diagonal meeting in a point.
-    flare swells the thin diagonal toward its serifed top."""
+    The thick stroke runs down from taper[0] to taper[1] of its width; the
+    thin one runs back up and swells by flare into its serifed top."""
     xa = x0 + thick / 2
     xb = x0 + span - hair / 2
     xv = x0 + span * apex
     yv = -OV * 1.6 if bottom is None else bottom
-    A, B = (xa - thick / 2, top), (xa + thick / 2, top)
+    A, B = (xa - thick / 2, top), (xa - thick / 2 + thick * taper[0], top)
     D, E = (xb - hair / 2, top), (xb + hair / 2, top)
     V = (xv, yv)
-    C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
+    C = intersect(B, (V[0] + thick * taper[1], yv),
                   D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
     g = Glyph().add(contour(A, V, E, D, C, B))
     if flare and right_serif:
@@ -451,17 +452,17 @@ def y():
 @glyph("x", 0x78, SB_STRAIGHT - 6, SB_STRAIGHT - 6)
 def x():
     wd = 440
-    thick = diag((DIAG / 2 + 4, XH), (wd - DIAG / 2 - 4, 0), DIAG)
+    wt, wb = DIAG * DIAG_TAPER[0], DIAG * DIAG_TAPER[1]
+    thick = taper_diag((wt / 2 + 4, XH), (wd - wb / 2 - 4, 0), wt, wb)
     thin = flared_stroke((DIAG_HAIR / 2 + 12, 0), (wd - DIAG_HAIR / 2 - 12, XH), DIAG_HAIR,
-                         FLARE, FLARE, FLARE_LEN)
-    t0, t1 = 4, DIAG + 4
+                         FLARE, 0, FLARE_LEN)
     h0, h1 = wd - DIAG_HAIR - 12, wd - 12
     return Glyph().add(
         thick, thin,
-        foot_serif(t0, t1, reach=SERIF).mirror_y(XH / 2),
-        foot_serif(h0 - FLARE / 2, h1 + FLARE / 2, reach=SERIF * 0.8).mirror_y(XH / 2),
+        foot_serif(4, 4 + wt, reach=SERIF).mirror_y(XH / 2),
+        foot_serif(h0, h1, reach=SERIF * 0.8).mirror_y(XH / 2),
         foot_serif(12 - FLARE / 2, 12 + DIAG_HAIR + FLARE / 2, reach=SERIF * 0.8),
-        foot_serif(wd - DIAG - 4, wd - 4, reach=SERIF),
+        foot_serif(wd - wb - 4, wd - 4, reach=SERIF),
     )
 
 
@@ -473,14 +474,15 @@ def k():
     l1 = (arm_top - DIAG_HAIR / 2, XH)
     l2 = (STEM - 10 - DIAG_HAIR / 2, XH * 0.22)
     below_arm = contour(l2, l1, (l1[0] + 1000, l1[1]), (l1[0] + 1000, -500), (l2[0], -500))
-    leg = Glyph().add(diag((STEM + 60, XH * 0.70), (STEM + 262, 0), DIAG)).clip(below_arm)
+    leg = Glyph().add(taper_diag((STEM + 60, XH * 0.70), (STEM + 262, 0), DIAG * DIAG_TAPER[0],
+                                 DIAG * DIAG_TAPER[1])).clip(below_arm)
     right_of_stem = rect(STEM - 2, -50, 900, XH + 50)
     return Glyph().add(
         _stem(0, 0, ASC),
         Glyph().add(arm, leg).clip(right_of_stem),
         foot_serif(arm_top - (DIAG_HAIR + FLARE) / 2, arm_top + (DIAG_HAIR + FLARE) / 2,
                    reach=SERIF * 0.9).mirror_y(XH / 2),
-        foot_serif(STEM + 262 - DIAG / 2, STEM + 262 + DIAG / 2, reach=SERIF),
+        foot_serif(STEM + 262 - DIAG * DIAG_TAPER[1] / 2, STEM + 262 + DIAG * DIAG_TAPER[1] / 2, reach=SERIF),
     )
 
 
@@ -491,7 +493,7 @@ def z():
     slant = STEM * 1.16  # the thick diagonal, measured horizontally
     return Glyph().add(
         rect(0, XH - bar, wd, XH),
-        contour((wd - slant, XH - bar), (wd, XH - bar), (slant, bar), (0, bar)),
+        contour((wd - slant * DIAG_TAPER[0], XH - bar), (wd, XH - bar), (slant * DIAG_TAPER[1], bar), (0, bar)),
         rect(0, 0, wd, bar),
         arm_serif(wd, 0, bar, 110).mirror_x(wd / 2).mirror_y(XH / 2),
         arm_serif(wd, 0, bar, 120),
@@ -632,11 +634,12 @@ def N():
     # The thick diagonal leaves the top-left corner and ends in a point on
     # the baseline at the far right.
     rise = (CAP + CAP_OV) / w
-    diag_ = contour((0, CAP), (w, -CAP_OV), (w, -CAP_OV + CAP_DIAG * rise), (CAP_DIAG, CAP))
+    diag_ = contour((0, CAP), (w, -CAP_OV), (w, -CAP_OV + CAP_DIAG * DIAG_TAPER[1] * rise),
+                    (CAP_DIAG * DIAG_TAPER[0], CAP))
     y_r = -CAP_OV + CAP_THIN_STEM * rise  # where the right stem meets the diagonal's underside
     return Glyph().add(
-        _thin_stem(0, head_right=False, flare_foot=True), diag_,
-        _thin_stem(w - CAP_THIN_STEM, bottom=y_r, foot=False, flare_top=True),
+        _thin_stem(0, head_right=False), diag_,
+        _thin_stem(w - CAP_THIN_STEM, bottom=y_r, foot=False),
     )
 
 
@@ -644,13 +647,13 @@ def N():
 def M():
     w = 800
     xs = w - CAP_STEM
-    A, B = (0, CAP), (CAP_DIAG, CAP)
+    A, B = (0, CAP), (CAP_DIAG * DIAG_TAPER[0], CAP)
     V = (w * 0.47, -CAP_OV)
     E, D = (xs, CAP), (xs - CAP_THIN_STEM, CAP)
-    C = intersect(B, (B[0] + V[0] - A[0], B[1] + V[1] - A[1]),
+    C = intersect(B, (V[0] + CAP_DIAG * DIAG_TAPER[1], V[1]),
                   D, (D[0] + V[0] - E[0], D[1] + V[1] - E[1]))
     return Glyph().add(
-        _thin_stem(0, head_right=False, flare_foot=True), contour(A, V, E, D, C, B),
+        _thin_stem(0, head_right=False), contour(A, V, E, D, C, B),
         _cap_stem(xs, head_left=False),
     )
 
@@ -677,7 +680,9 @@ def W():
 def A():
     span = 660
     # An upside-down V: thin left, thick right, a sharp apex.
-    v_, Vp, E = _cap_v(0, span, bottom=-CAP_OV * 2)
+    # Turned, so the taper is reversed: both legs are written down from
+    # the apex and end heavy at the feet.
+    v_, Vp, E = _cap_v(0, span, bottom=-CAP_OV * 2, taper=DIAG_TAPER[::-1])
     c = (span / 2, CAP / 2)
     g = v_.turn(*c)
     turn = lambda p: (2 * c[0] - p[0], 2 * c[1] - p[1])
@@ -687,7 +692,7 @@ def A():
     yb = CAP * 0.29
     x0 = _line_x(apex, out_l, yb) + CAP_THIN_STEM
     x1 = _line_x(apex, out_r, yb) - CAP_DIAG
-    bar = Glyph().add(pen_bar(x0, x1, yb, CAP_BAR_THIN, flare=(BAR_FLARE * 0.25, BAR_TIP * 0.6),
+    bar = Glyph().add(pen_bar(x0, x1, yb, CAP_BAR_THIN, flare=(0, BAR_TIP * 0.6),
                               flare_len=70, ext=(60, 60)))
     return g.add(bar.clip(contour(apex, out_r, out_l)))
 
@@ -695,16 +700,16 @@ def A():
 @glyph("X", 0x58, CAP_SB_STRAIGHT - 20, CAP_SB_STRAIGHT - 20)
 def X():
     wd = 640
-    t0, t1 = 6, CAP_DIAG + 6
+    wt, wb = CAP_DIAG * DIAG_TAPER[0], CAP_DIAG * DIAG_TAPER[1]
     h0, h1 = wd - CAP_THIN_STEM - 16, wd - 16
     return Glyph().add(
-        diag((CAP_DIAG / 2 + 6, CAP), (wd - CAP_DIAG / 2 - 6, 0), CAP_DIAG),
+        taper_diag((wt / 2 + 6, CAP), (wd - wb / 2 - 6, 0), wt, wb),
         flared_stroke((CAP_THIN_STEM / 2 + 16, 0), (wd - CAP_THIN_STEM / 2 - 16, CAP), CAP_THIN_STEM,
-                      CAP_FLARE, CAP_FLARE),
-        _diag_serif(t0, t1, cap=True).mirror_y(CAP / 2),
-        _diag_serif(h0 - CAP_FLARE / 2, h1 + CAP_FLARE / 2, 0.8, cap=True).mirror_y(CAP / 2),
+                      CAP_FLARE, 0),
+        _diag_serif(6, 6 + wt, cap=True).mirror_y(CAP / 2),
+        _diag_serif(h0, h1, 0.8, cap=True).mirror_y(CAP / 2),
         _diag_serif(16 - CAP_FLARE / 2, 16 + CAP_THIN_STEM + CAP_FLARE / 2, 0.8, cap=True),
-        _diag_serif(wd - CAP_DIAG - 6, wd - 6, cap=True),
+        _diag_serif(wd - wb - 6, wd - 6, cap=True),
     )
 
 
@@ -725,13 +730,14 @@ def K():
     l2 = (low[0] - CAP_THIN_STEM / 2, low[1])
     below_arm = contour(l2, l1, (l1[0] + 1000, l1[1]), (l1[0] + 1000, -500), (l2[0], -500))
     foot_x = CAP_STEM + 420
-    leg = Glyph().add(diag((CAP_STEM + 110, CAP * 0.62), (foot_x, 0), CAP_DIAG)).clip(below_arm)
+    leg = Glyph().add(taper_diag((CAP_STEM + 110, CAP * 0.62), (foot_x, 0), CAP_DIAG * DIAG_TAPER[0],
+                                 CAP_DIAG * DIAG_TAPER[1])).clip(below_arm)
     return Glyph().add(
         _cap_stem(0),
         Glyph().add(arm, leg).clip(rect(CAP_STEM - 2, -50, 1200, CAP + 50)),
         _diag_serif(arm_top - (CAP_THIN_STEM + CAP_FLARE) / 2, arm_top + (CAP_THIN_STEM + CAP_FLARE) / 2, 0.9,
                     cap=True).mirror_y(CAP / 2),
-        _diag_serif(foot_x - CAP_DIAG / 2, foot_x + CAP_DIAG / 2, cap=True),
+        _diag_serif(foot_x - CAP_DIAG * DIAG_TAPER[1] / 2, foot_x + CAP_DIAG * DIAG_TAPER[1] / 2, cap=True),
     )
 
 
@@ -742,7 +748,7 @@ def Z():
     slant = CAP_STEM * 1.16
     return Glyph().add(
         rect(0, CAP - bar, wd, CAP),
-        contour((wd - slant, CAP - bar), (wd, CAP - bar), (slant, bar), (0, bar)),
+        contour((wd - slant * DIAG_TAPER[0], CAP - bar), (wd, CAP - bar), (slant * DIAG_TAPER[1], bar), (0, bar)),
         rect(0, 0, wd, bar),
         arm_serif(wd, 0, bar, 150).mirror_x(wd / 2).mirror_y(CAP / 2),
         arm_serif(wd, 0, bar, 170),
@@ -821,7 +827,7 @@ def U():
     return Glyph().add(
         bowl_,
         rect(0, cy - 1, CAP_STEM, CAP), cap_head(0, CAP_STEM, CAP),
-        _thin_stem(w - CAP_THIN_STEM, bottom=cy - 1, foot=False, flare_top=True),
+        _thin_stem(w - CAP_THIN_STEM, bottom=cy - 1, foot=False),
     )
 
 
@@ -865,12 +871,13 @@ def R():
     xc, rx = 240, 225
     # Leg: a thick diagonal from the bowl's underside to a serifed foot.
     foot_x = xc + rx + 30
-    leg = Glyph().add(diag((xc - 10, yb + 60), (foot_x, 0), CAP_DIAG)).clip(
+    leg = Glyph().add(taper_diag((xc - 10, yb + 60), (foot_x, 0), CAP_DIAG * DIAG_TAPER[0],
+                                 CAP_DIAG * DIAG_TAPER[1])).clip(
         rect(CAP_STEM, -10, 1000, yb + t_bot))
     return Glyph().add(
         _cap_stem(0, head_right=False),
         _cap_bowl(CAP_STEM, yb, CAP, xc, rx, CAP_ROUND * 0.96, t_bot=t_bot),
-        leg, _diag_serif(foot_x - CAP_DIAG / 2, foot_x + CAP_DIAG / 2, cap=True),
+        leg, _diag_serif(foot_x - CAP_DIAG * DIAG_TAPER[1] / 2, foot_x + CAP_DIAG * DIAG_TAPER[1] / 2, cap=True),
     )
 
 

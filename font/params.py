@@ -46,9 +46,14 @@ BRACKET = round(SERIF_TIP + SERIF * math.tan(PEN) * 1.15)  # flank height at the
 CAP_SERIF = 64
 CAP_SERIF_TIP = 5
 CAP_BRACKET = round(CAP_SERIF_TIP + CAP_SERIF * math.tan(PEN) * 1.15)
-# Crossbars rise at the pen angle and swell toward their ends
-BAR_FLARE = 44     # extra thickness at the left end of a bar
-BAR_TIP = 88       # extra thickness at the right tip, the expressive end
+# Crossbars rise at the pen angle. Like a brush stroke they start as a
+# hairline and end with pressure: barely any swell on the left, a heavy
+# right tip.
+BAR_FLARE = 8      # extra thickness at the left end of a bar
+BAR_TIP = 104      # extra thickness at the right tip, where the stroke ends
+# Thick diagonals are written downward: narrower where they start (top),
+# heavier where they end (bottom), as fractions of their nominal width.
+DIAG_TAPER = (0.8, 1.14)
 BAR_FLARE_LEN = 150  # how far in from the end the swelling starts
 
 # Arches (n, m, h, u)

@@ -36,9 +36,14 @@ CAP_ZONE = (0, CAP)
 FULL = (DESC - OV - 60, ASC + OV + 60)
 
 
+FIGURES = "zero one two three four five six seven eight nine".split()
+
+
 def _zone(name):
     if name in ("period", "comma"):
         return LOWER_ZONE
+    if name in FIGURES:
+        return CAP_ZONE
     return CAP_ZONE if name[0].isupper() else LOWER_ZONE
 
 

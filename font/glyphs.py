@@ -7,7 +7,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, DIAG_TAPER, CAP, CAP_BR
                      CAP_SERIF, CAP_SERIF_TIP, CAP_THIN, THIN, BAR_THIN, CAP_BAR_THIN, ROUND, CAP_ROUND,
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_IN, K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
-                     XH)
+                     XH, HEAD, HEAD_SLOPE)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, taper_diag, nib_dot, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
@@ -210,20 +210,31 @@ def _tear_end(g, cx, cy, rx, ry, yc, rb, corner="top_right", cut=True):
     d = (-math.sin(phi), math.cos(phi))       # back along the stroke
     n_in = (-math.cos(phi), -math.sin(phi))   # across it, toward the counter
 
-    def across(P):
-        """How far the stroke runs left of P, a point on its outer edge.
-        Walking level keeps clear of the trimmed end below yc."""
+    def normal(th2):
+        """A point on the outer edge and the inward normal there."""
+        P = (cx + rx * math.cos(th2), cy + ry * math.sin(th2))
+        nx, ny = -math.cos(th2) / rx, -math.sin(th2) / ry
+        nl = math.hypot(nx, ny)
+        return P, (nx / nl, ny / nl)
+
+    def across(th2):
+        """Stroke thickness at th2, walking in along the normal."""
+        P, n = normal(th2)
         t = 2
-        while t < 300 and g.path.contains((P[0] - t, P[1])):
+        while t < 300 and g.path.contains((P[0] + t * n[0], P[1] + t * n[1])):
             t += 1
         return t
 
-    def inner(th2):
-        P = (cx + rx * math.cos(th2) - 1, cy + ry * math.sin(th2))
-        return (P[0] - across(P) - 2, P[1])  # just past the edge, so the fill overlaps it
+    def inner(th2, past=2):
+        """The stroke's inner edge at th2; past > 0 lands just beyond it, so
+        a fill overlaps the edge."""
+        P, n = normal(th2)
+        t = across(th2) + past
+        return (P[0] + t * n[0], P[1] + t * n[1])
 
-    # The face is as wide as the stroke plus the swell.
-    w = across((A[0] - 1, A[1] + 2)) * math.cos(phi) + rb * 0.75
+    # The face is as wide as the stroke (measured a little way back, clear
+    # of the trimmed end) plus the swell.
+    w = across(th + 0.2) + rb * 0.75
     B = (A[0] + w * n_in[0], A[1] + w * n_in[1])
 
     # The swelling side runs straight from the face's inner corner to the
@@ -231,7 +242,7 @@ def _tear_end(g, cx, cy, rx, ry, yc, rb, corner="top_right", cut=True):
     # edge so no pocket of counter is closed off.
     reach = min(rb * 2.2 / ((rx + ry) / 2), 0.7)
     edge = [inner(th + reach * i / 12) for i in range(12, 0, -1)]
-    C = edge[0]
+    C = inner(th + reach, -1)  # the straight side lands just inside the edge, leaving no spur
     # Nothing of the stroke carries on past the face.
     g.cut(Glyph().add(half_plane(A, B)).clip(rect(cx + rx * 0.2, min(A[1], B[1]) - 2, cx + rx + 10, cy + ry + 10)))
     g.add(Glyph().add(contour(A, B, C), contour(A, *edge)).clip(ellipse(cx, cy, rx, ry)))
@@ -937,6 +948,196 @@ def B():
 @glyph("S", 0x53, CAP_SB_ROUND, CAP_SB_ROUND)
 def S():
     return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 44, CAP_BOWL_THIN + 2, 52)
+
+
+# ------------------------------------------------------------------ figures
+# Lining figures at cap height, built from the capitals' parts: rings with
+# CAP_ROUND sides, wedge ends, crossbars that end in a heavy tip.
+
+FIG_BAR = CAP_BAR_THIN + 10  # the heavier horizontals of 2 5 7
+
+
+def _hook_ring(cx, cy, rx, ry, heavy, light, side):
+    """A ring whose `side` ("left"/"right") carries the weight `heavy` and
+    whose other side is `light`, for the bowls that end in a wedge."""
+    sign = 1 if side == "right" else -1
+    return ring(cx, cy, rx, ry, rx - (heavy + light) / 2, thin=CAP_BOWL_THIN,
+                dx_in=sign * (light - heavy) / 2)
+
+
+@glyph("zero", 0x30, CAP_SB_ROUND, CAP_SB_ROUND)
+def zero():
+    rx = 250
+    return ring(rx, CAP / 2, rx, CAP / 2 + CAP_OV, rx - CAP_ROUND * 0.96, thin=CAP_BOWL_THIN)
+
+
+@glyph("one", 0x31, CAP_SB_STRAIGHT + 20, CAP_SB_STRAIGHT + 20)
+def one():
+    # A capital stem whose head is the lowercase wedge, drawn larger: the
+    # stroke enters from the left like a flag.
+    x1 = CAP_STEM
+    return Glyph().add(
+        rect(0, 0, x1, CAP - 100),
+        head_serif(0, x1, CAP, reach=HEAD * 1.5, slope=HEAD_SLOPE * 1.5),
+        foot_serif(0, x1, 0, CAP_SERIF * 1.4, CAP_SERIF_TIP, CAP_BRACKET),
+    )
+
+
+@glyph("two", 0x32, CAP_SB_ROUND, CAP_SB_STRAIGHT)
+def two():
+    w = 470
+    rx, ry = w / 2 - 20, 190
+    cx, cy = w / 2, CAP + CAP_OV - ry
+    # Upper bowl: heavy on the right, ending on the left in a wedge.
+    top = _hook_ring(cx, cy, rx, ry, CAP_ROUND, 52, "right")
+    top.clip(rect(cx - rx - 10, cy, cx + rx + 10, CAP + 100))
+    _tear_end(top, cx, cy, rx, ry, cy + 20, 50, "top_left")
+    # The right side runs on into a diagonal written down to the base,
+    # pressing harder as it goes.
+    x_in = cx + rx - CAP_ROUND
+    spine = contour((x_in, cy), (cx + rx, cy), (CAP_DIAG * DIAG_TAPER[1], FIG_BAR), (0, FIG_BAR))
+    return Glyph().add(top, spine, rect(0, 0, w, FIG_BAR), arm_serif(w, 0, FIG_BAR, 150))
+
+
+def _lower_bowl(w, rx, ry, heavy=CAP_ROUND, keep_from=None):
+    """The open lower bowl of 3 and 5: heavy on the right, ending at the
+    bottom left in a wedge. Everything right of keep_from is kept."""
+    cx, cy = w - rx, ry - CAP_OV
+    g = _hook_ring(cx, cy, rx, ry, heavy, 52, "right")
+    keep_from = cx - 40 if keep_from is None else keep_from
+    g.clip(Glyph().add(rect(keep_from, -100, w + 10, CAP + 100), rect(cx - rx - 10, -100, cx + 10, cy)))
+    _tear_end(g, cx, cy, rx, ry, cy, 50, "bottom_left")
+    return g, cx, cy
+
+
+@glyph("three", 0x33, CAP_SB_ROUND, CAP_SB_ROUND)
+def three():
+    w = 460
+    lower, cxl, cyl = _lower_bowl(w, 225, 182)
+    waist = cyl + 182  # top of the lower bowl
+    rxu = 196
+    ryu = (CAP + CAP_OV - (waist - CAP_BOWL_THIN)) / 2
+    cxu, cyu = w - 12 - rxu, CAP + CAP_OV - ryu
+    upper = _hook_ring(cxu, cyu, rxu, ryu, CAP_ROUND * 0.9, 48, "right")
+    upper.clip(Glyph().add(rect(cxu - 40, -100, w + 10, CAP + 100), rect(cxu - rxu - 10, cyu, cxu + 10, CAP + 100)))
+    _tear_end(upper, cxu, cyu, rxu, ryu, cyu + 10, 46, "top_left")
+    # Where the bowls meet, a pointed tongue reaches left, sharp like the
+    # crossbars' tips.
+    xw = min(cxl, cxu) - 30
+    ym = waist - CAP_BOWL_THIN / 2
+    tongue = contour((xw + 20, ym + 22), (xw - 52, ym), (xw + 20, ym - 26))
+    return Glyph().add(lower, upper, tongue)
+
+
+@glyph("four", 0x34, CAP_SB_STRAIGHT - 10, CAP_SB_STRAIGHT)
+def four():
+    w = 520
+    x1 = w - 50
+    x0 = x1 - CAP_STEM
+    yb = CAP * 0.24
+    # A hairline written down from the top of the stem to the bar's left end;
+    # the bar starts there as a hairline and ends past the stem in a tip.
+    hw = CAP_THIN_STEM * 1.4
+    hair = flared_stroke((hw / 2, yb), (x0 + hw / 2, CAP), hw)
+    bar = pen_bar(0, x1 + 60, yb, FIG_BAR, angle=0, flare=(0, BAR_TIP * 0.6), flare_len=110)
+    return Glyph().add(hair, bar, rect(x0, 0, x1, CAP), cap_foot(x0, x1))
+
+
+@glyph("five", 0x35, CAP_SB_ROUND, CAP_SB_ROUND)
+def five():
+    w = 450
+    rx, ry = 225, 196
+    xn = w - 2 * rx + rx * 0.22  # the neck's left edge
+    nw = CAP_STEM * 0.8          # a vertical, so it keeps one weight
+    lower, cx, cy = _lower_bowl(w, rx, ry, keep_from=xn + 10)
+    # The neck runs from the top bar straight down into the bowl's shoulder.
+    y_join = cy + ry * math.sqrt(1 - ((xn + nw - cx) / rx) ** 2) - 80
+    neck = rect(xn, y_join, xn + nw, CAP)
+    bar = Glyph().add(rect(xn, CAP - FIG_BAR, w - 10, CAP), arm_serif(w - 10, 0, FIG_BAR, 130).mirror_y(CAP / 2))
+    return Glyph().add(lower, neck, bar)
+
+
+def _fill_notch(g, x0, x1, y0, y1, width, step=2):
+    """Fill a thread-thin gap where two strokes part slowly, from y0 up
+    until the gap is `width` wide, so the counter ends crisply instead of
+    in a hairline. Scans rows between x0 and x1 for ink, gap, ink."""
+    left, right = [], []
+    for y in range(int(y0), int(y1), step):
+        row = [g.path.contains((x + 0.5, y)) for x in range(int(x0), int(x1))]
+        runs, x = [], 0
+        while x < len(row):
+            start = x
+            while x < len(row) and row[x] == row[start]:
+                x += 1
+            runs.append((row[start], start, x))
+        gaps = [(a, b) for i, (ink, a, b) in enumerate(runs) if not ink and 0 < i < len(runs) - 1]
+        if not gaps:
+            if left:
+                break
+            continue
+        a, b = gaps[0]
+        if b - a >= width:
+            break
+        left.append((x0 + a - 1, y))
+        right.append((x0 + b + 1, y))
+    if len(left) > 1:
+        g.add(contour(*left, *reversed(right)))
+    return g
+
+
+def _six():
+    w = 480
+    cx, rx = w / 2, w / 2 - 10
+    ryb = 212
+    cyb = ryb - CAP_OV
+    bowl_ = ring(cx, cyb, rx, ryb, rx - CAP_ROUND * 0.95, thin=CAP_BOWL_THIN)
+    # The stroke rises from the bowl's left side, its widest point shared
+    # with the bowl's so the edge runs on, and ends at the top right in a
+    # wedge.
+    ry = CAP + CAP_OV - cyb
+    arc = _hook_ring(cx, cyb, rx, ry, CAP_ROUND * 0.95 - 8, 46, "left")  # inside the bowl's side
+    arc.clip(rect(cx - rx - 10, cyb, cx + rx + 10, CAP + 100))
+    yt = cyb + ry * 0.72
+    arc.cut(rect(cx + 20, cyb - 10, cx + rx + 10, yt))
+    _tear_end(arc, cx, cyb, rx, ry, yt, 50, cut=False)
+    g = Glyph().add(bowl_, arc)
+    return _fill_notch(g, cx - rx, cx - 40, cyb, cyb + 300, 16), w
+
+
+@glyph("six", 0x36, CAP_SB_ROUND, CAP_SB_ROUND)
+def six():
+    return _six()[0]
+
+
+@glyph("nine", 0x39, CAP_SB_ROUND, CAP_SB_ROUND)
+def nine():
+    g, w = _six()
+    return g.turn(w / 2, CAP / 2)
+
+
+@glyph("seven", 0x37, CAP_SB_STRAIGHT, CAP_SB_STRAIGHT - 10)
+def seven():
+    w = 470
+    wt, wb = CAP_DIAG * DIAG_TAPER[0], CAP_DIAG * DIAG_TAPER[1]
+    left = arm_serif(w, 0, FIG_BAR, 130).mirror_y(CAP / 2).mirror_x(w / 2)
+    return Glyph().add(
+        rect(0, CAP - FIG_BAR, w, CAP), left,
+        taper_diag((w - wt / 2, CAP - FIG_BAR), (w * 0.36, 0), wt, wb),
+    )
+
+
+@glyph("eight", 0x38, CAP_SB_ROUND, CAP_SB_ROUND)
+def eight():
+    w = 460
+    cx = w / 2
+    rxl, ryl = 228, 186
+    cyl = ryl - CAP_OV
+    lower = ring(cx, cyl, rxl, ryl, rxl - CAP_ROUND, thin=CAP_BOWL_THIN)
+    waist = cyl + ryl
+    rxu = 196
+    ryu = (CAP + CAP_OV - (waist - CAP_BOWL_THIN)) / 2
+    upper = ring(cx, CAP + CAP_OV - ryu, rxu, ryu, rxu - CAP_ROUND * 0.9, thin=CAP_BOWL_THIN)
+    return Glyph().add(lower, upper)
 
 
 # -------------------------------------------------------------- punctuation

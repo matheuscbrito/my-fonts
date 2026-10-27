@@ -118,6 +118,18 @@ class Glyph:
             self.path = pathops.op(self.path, _as_path(item), DIFFERENCE, fix_winding=True)
         return self
 
+    def drop_specks(self, min_area=40):
+        """Remove stray contours smaller than min_area, left by boolean ops."""
+        keep = pathops.Path()
+        for c in self.path.contours:
+            q = pathops.Path()
+            c.draw(q.getPen())
+            b = q.bounds
+            if (b[2] - b[0]) * (b[3] - b[1]) >= min_area:
+                c.draw(keep.getPen())
+        self.path = keep
+        return self
+
     def turn(self, cx, cy):
         """A copy turned 180 degrees around (cx, cy)."""
         g = Glyph()

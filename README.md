@@ -36,10 +36,11 @@ Then open http://127.0.0.1:8765/specimen/.
 h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; }
 ```
 
-## Current glyph set (v0.4)
+## Current glyph set (v0.5)
 
 - Lowercase: the full alphabet, `a` to `z`.
 - Capitals: the full alphabet, `A` to `Z`.
+- Figures: lining `0` to `9` at cap height, built from the capitals' parts.
 - Punctuation: `. ,` and space.
 
 The strokes follow a brush: each one starts thin and ends with pressure,

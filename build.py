@@ -41,7 +41,7 @@ def build():
     metrics[".notdef"] = (w, lsb)
 
     for name, (uni, lsb, rsb, draw) in GLYPHS.items():
-        path = draw().path
+        path = draw().drop_specks().path
         if path.bounds and path.bounds != (0, 0, 0, 0):
             x_min, _, x_max, _ = path.bounds
             width = round(x_max - x_min + lsb + rsb)

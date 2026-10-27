@@ -6,7 +6,7 @@ import pathops
 from .draw import KAPPA, Glyph, circle, contour, ellipse
 from .params import (ARCH_THIN, BRACKET, CAP_BRACKET, CAP_SERIF, CAP_SERIF_TIP,
                      HEAD, HEAD_SLOPE, K_IN, K_OUT, O_THIN, OV, SERIF,
-                     BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, HAIR, PEN, SERIF_TIP, STEM, STRESS, THIN)
+                     BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, HAIR, PEN, ROUND, SERIF_TIP, STEM, STRESS, THIN)
 
 
 def foot_serif(x0, x1, y=0, reach=SERIF, tip=SERIF_TIP, bracket=BRACKET,
@@ -187,7 +187,7 @@ def drop(x, y, r, angle=0, length=None):
     ).rotate(angle).translate(x, y)
 
 
-def bowl(stem_edge, side, width, top, stem=STEM, ov=OV, thin=O_THIN):
+def bowl(stem_edge, side, width, top, stem=STEM, ov=OV, thin=O_THIN, weight=ROUND):
     """Bowl attached to a stem (b d p q). The bowl's near side hides inside
     the stem so only thin joins show; the far side carries the weight.
     side=+1 puts the bowl right of stem_edge, -1 left of it."""
@@ -196,7 +196,7 @@ def bowl(stem_edge, side, width, top, stem=STEM, ov=OV, thin=O_THIN):
     far_out = stem_edge + side * width
     cx = (near_out + far_out) / 2
     rx = abs(far_out - near_out) / 2
-    far_in = far_out - side * stem * 0.98
+    far_in = far_out - side * weight
     near_in = stem_edge
     cx_in = (near_in + far_in) / 2
     rx_in = abs(far_in - near_in) / 2

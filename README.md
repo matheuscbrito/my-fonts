@@ -46,10 +46,12 @@ Curves are built from true ellipses: rings (an ellipse minus a counter),
 ellipses run off along straight pen-angle tangents into stems, and bowls
 joined by straight spines tangent to both (s, S). Stroke ends are cut on the
 shared pen angle (`PEN`), finish in teardrops (a, J), or thicken into
-flat-faced beaks (s, S, C, G). Crossbars rise at the pen angle and flare at
-their ends. f and j still use `nib_stroke`, which sweeps a flat pen along a
-curve.
+flat-faced beaks (s, S, c, C, G). Crossbars rise at the pen angle and flare at
+their ends.
 
-Thin strokes share two weights in `params.py`: `THIN` (18) for lowercase bars,
-links, arches and bowls, and `CAP_THIN` (19) for capital crossbars and bowls.
-Change either to lighten or darken the hairlines across the whole alphabet.
+The a is the model for the weights in `params.py`. Curves run heavier than
+stems so they read equally dark: `ROUND` (119) for lowercase, `CAP_ROUND`
+(125) for capitals. Thin strokes are `THIN` (18) and `CAP_THIN` (19), with
+bowls a little firmer (`O_THIN`) and crossbars and arms firmer still
+(`BAR_THIN`, `CAP_BAR_THIN`), since a long hairline reads lighter than a short
+one. Change any of them to shift that part of the whole alphabet.

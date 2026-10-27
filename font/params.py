@@ -26,6 +26,13 @@ CAP_HAIR = 13      # capital hairline
 # The thin strokes that carry a letter, kept even across the alphabet
 THIN = 18          # lowercase bars, links, ears, arches and bowls
 CAP_THIN = 19      # capital crossbars and the thinnest points of capital bowls
+# Curves are drawn heavier than stems, as in the a's bowl, so they read as
+# equally dark; their thinnest points and crossbars are a touch firmer than
+# THIN, since a long hairline reads lighter than a short one.
+ROUND = round(STEM * 1.12)          # widest point of lowercase curves (119)
+CAP_ROUND = round(CAP_STEM * 1.1)   # widest point of capital curves (125)
+BAR_THIN = THIN + 6                 # lowercase crossbars (e, t, f, z)
+CAP_BAR_THIN = CAP_THIN + 5         # capital crossbars and arms
 
 # Serifs (flared diagonal wedges, cut like a broad-nib pen)
 HEAD = 92          # lowercase head serif reach to the left
@@ -50,7 +57,7 @@ N_COUNTER = 230    # white space inside n
 M_COUNTER = 198    # white space inside each half of m
 
 # Round shapes
-O_THIN = THIN      # thinnest point of bowls
+O_THIN = THIN + 2  # thinnest point of bowls, the a's crown
 STRESS = 0         # tilt of the stress axis in degrees (0 = vertical, negative leans right)
 K_OUT = 0.5523     # curve fullness of outer contours (0.5523 = true ellipse, geometric)
 K_IN = 0.5523      # inner contours match, keeping counters pure ellipses

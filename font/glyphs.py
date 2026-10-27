@@ -4,12 +4,12 @@ import math
 
 from .draw import Glyph, contour, ellipse, rect
 from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_HAIR, CAP_OV, CAP_SB_ROUND,
-                     CAP_SERIF, CAP_SERIF_TIP, CAP_THIN, THIN,
+                     CAP_SERIF, CAP_SERIF_TIP, CAP_THIN, THIN, BAR_THIN, CAP_BAR_THIN, ROUND, CAP_ROUND,
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_diag, flared_stroke, foot_serif,
-                    half_plane, head_serif, intersect, nib_dot, nib_stroke, pen_bar,
+                    half_plane, head_serif, intersect, nib_dot, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
 GLYPHS = {}  # name -> (unicode, lsb, rsb, draw function)
@@ -123,7 +123,7 @@ def r():
 def o():
     rx = 250  # o is nearly a circle (ry = 249)
     ry = XH / 2 + OV
-    return ring(rx, XH / 2, rx, ry, rx - STEM * 0.98)
+    return ring(rx, XH / 2, rx, ry, rx - ROUND)
 
 
 @glyph("c", 0x63, SB_ROUND, SB_ROUND - 6)
@@ -131,10 +131,13 @@ def c():
     rx = 232
     ry = XH / 2 + OV
     cx = rx
-    g = ring(cx, XH / 2, rx, ry, rx - STEM * 0.86, dx_in=14)
-    # Both ends cut on the nib diagonal.
-    return g.cut(contour((cx + 20, XH * 0.36), (cx + rx + 30, XH * 0.14),
-                         (cx + rx + 30, XH * 0.82), (cx + 20, XH * 0.58)))
+    g = ring(cx, XH / 2, rx, ry, rx - ROUND, dx_in=8)
+    # Like C: the top thickens into a flat-faced beak, the bottom ends on a
+    # pen-angle cut.
+    yt, yb = XH * 0.62, XH * 0.25
+    xe = _beak(g, cx, rx, ry, yt, width=40, cy=XH / 2)
+    return g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
+                 .clip(pen_side(cx + 20, cx + rx + 60, cx + rx, yb)))
 
 
 @glyph("e", 0x65, SB_ROUND, SB_ROUND - 4)
@@ -142,8 +145,8 @@ def e():
     rx = 236
     ry = XH / 2 + OV
     cx = rx
-    rx_in = rx - STEM * 0.88
-    dx_in = 12
+    rx_in = rx - ROUND
+    dx_in = 8
     bar0 = XH * 0.50  # bottom of the bar at the centre; it rises at the pen angle
     k = math.tan(PEN)
     g = ring(cx, XH / 2, rx, ry, rx_in, dx_in=dx_in)
@@ -162,7 +165,7 @@ def e():
     # hangs into the opening.
     x_l, x_r = cx + 10, cx + rx + 30
     g.cut(contour((x_l, yb(x_l)), (x_r, yb(x_r)), (x_r, XH * 0.14), (x_l, XH * 0.34)))
-    bar = Glyph().add(pen_bar(x_in, x_out, bar0, THIN, pivot=cx,
+    bar = Glyph().add(pen_bar(x_in, x_out, bar0, BAR_THIN, pivot=cx,
                               flare=(BAR_FLARE * 0.8, BAR_TIP * 0.45), flare_len=120, ext=(40, 30)))
     g.add(bar.clip(ellipse(cx, XH / 2, rx - 1, ry - 1, K_OUT)))
     return g
@@ -194,9 +197,6 @@ def q():
 
 # ------------------------------------------------- lowercase: pen-drawn curves
 
-NIB_Y = THIN / 2  # a nib's centre sits this far inside a horizontal edge
-
-
 @glyph("t", 0x74, SB_STRAIGHT, SB_ROUND - 14)
 def t():
     s = STEM / 2
@@ -212,39 +212,42 @@ def t():
     stem = Glyph().add(rect(0, cy - 1, STEM, top + 10)).clip(pen_side(-10, STEM + 10, STEM, top, above=False))
     return Glyph().add(
         stem, hook,
-        pen_bar(-78, STEM + 150, XH - 44, THIN, pivot=s,
+        pen_bar(-78, STEM + 150, XH - 44, BAR_THIN, pivot=s,
                 flare=(BAR_FLARE * 0.5, BAR_TIP * 0.55), flare_len=80),
     )
 
 
 @glyph("f", 0x66, SB_STRAIGHT, 0)
 def f():
-    s = STEM / 2
-    yt = ASC + OV - NIB_Y
-    hook = nib_stroke([
-        ((s, ASC - 280), (s, ASC - 80), (s + 40, yt), (s + 140, yt)),
-        ((s + 140, yt), (s + 212, yt), (s + 250, ASC - 30), (s + 255, ASC - 135)),
-    ])
-    hook.clip(Glyph().add(pen_side(s + 150, s + 400, s + 255 + 53, ASC - 55))
-              .add(rect(-200, -400, s + 150, ASC + 200)))
+    # Hook: the a's hook mirrored. The top of a ring leaves the stem's two
+    # sides straight up, thins over the crown and ends on the right in a
+    # teardrop.
+    rx, ry, right = 150, 128, 38
+    cx, cy = rx, ASC + OV - ry
+    hook = ring(cx, cy, rx, ry, rx - (STEM + right) / 2, thin=O_THIN + 2, dx_in=(STEM - right) / 2)
+    hook.clip(rect(-10, cy, cx + rx + 10, ASC + 50)).cut(rect(cx, cy - 10, cx + rx + 10, cy + 48))
+    rb = 50
+    ball = drop(cx + rx - rb - 4, cy + 28, rb, angle=40, length=rb * 2.3)
     return Glyph().add(
-        rect(0, 0, STEM, ASC - 230), foot_serif(0, STEM, reach=SERIF * 1.2), hook,
-        pen_bar(-80, STEM + 140, XH - 34, THIN, pivot=s,
+        rect(0, 0, STEM, cy + 1), foot_serif(0, STEM, reach=SERIF * 1.2), hook, ball,
+        pen_bar(-80, STEM + 140, XH - 34, BAR_THIN, pivot=STEM / 2,
                 flare=(BAR_FLARE * 0.5, BAR_TIP * 0.55), flare_len=80),
     )
 
 
 @glyph("j", 0x6A, SB_STRAIGHT - 20, SB_STRAIGHT)
 def j():
-    s = STEM / 2
-    yb = DESC - OV + NIB_Y
-    hook = nib_stroke([
-        ((s, 120), (s, DESC + 60), (s - 40, yb), (s - 120, yb)),
-        ((s - 120, yb), (s - 180, yb), (s - 208, DESC + 30), (s - 212, DESC + 100)),
-    ])
-    hook.clip(Glyph().add(pen_side(s - 400, s + 400, s - 212 - 53, DESC + 72, above=False))
-              .add(rect(-10, DESC + 100, STEM + 10, XH)))
-    return Glyph().add(_stem(0, 100, XH, foot=False), hook, nib_dot(STEM / 2, XH + 190, 132))
+    # Hook: the J's at lowercase size, the lower half of a ring leaving the
+    # stem straight down and ending on the left in a teardrop.
+    rx, ry, left = 146, 124, 46
+    cx, cy = STEM - rx, DESC - OV + ry
+    hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
+    hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
+    rb = 46
+    # The bowl is shallower than J's, so keep the tail inside its outline.
+    tear = Glyph().add(drop(cx - rx + rb, cy, rb, angle=196, length=rb * 2.4)).clip(
+        Glyph().add(ellipse(cx, cy, rx, ry), rect(cx - rx - 10, cy, cx, cy + rb + 10)))
+    return Glyph().add(_stem(0, cy - 1, XH, foot=False), hook, tear, nib_dot(STEM / 2, XH + 190, 132))
 
 
 @glyph("a", 0x61, SB_ROUND, SB_STRAIGHT - 10)
@@ -265,7 +268,7 @@ def a():
     rx, ry = 150, 140
     cx, cy = xs - 110, ry - OV
     xj = xs + STEM / 2
-    x0, x1, y0 = cx - rx + STEM * 1.04, xs + 2, -OV + O_THIN
+    x0, x1, y0 = cx - rx + STEM * 1.04, xs + 2, -OV + THIN
     rxi, cxi = (x1 - x0) / 2, (x0 + x1) / 2
     steep = PEN * 1.9
     gap = pen_line_y(cx, cy, rx, ry, xs) - ARCH_THIN - 4  # counter tip height at the stem
@@ -323,21 +326,21 @@ def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)
 def s():
-    return _s((190, XH / 2), XH + OV, 168, 136, 98, 92, 34, THIN + 2, 40)
+    return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 38, O_THIN + 2, 42)
 
 
 @glyph("g", 0x67, SB_ROUND, SB_ROUND - 10)
 def g():
     ry = 168
     cy = XH + OV - ry
-    upper = ring(172, cy, 156, ry, 156 - STEM * 0.9)
+    upper = ring(172, cy, 160, ry, 160 - ROUND)
     # Ear: a pen-angle bar off the bowl's shoulder, swelling at its tip.
-    ear = pen_bar(285, 400, XH - 22, THIN, pivot=285, flare=(0, BAR_TIP * 0.6),
+    ear = pen_bar(285, 400, XH - 24, BAR_THIN - 2, pivot=285, flare=(0, BAR_TIP * 0.6),
                   flare_len=60, ext=(40, 0))
     # Lower loop: a ring heavy on the right, joined by a straight hairline.
     top, bot = 74, DESC - OV
     ryl = (top - bot) / 2
-    loop = ring(228, top - ryl, 214, ryl, 214 - STEM * 0.72, dx_in=-STEM * 0.28)
+    loop = ring(228, top - ryl, 214, ryl, 214 - ROUND * 0.76, dx_in=-ROUND * 0.26)
     link = flared_diag((146, cy - ry + 10), (120, 40), THIN, 34)
     return Glyph().add(upper, ear, link, loop)
 
@@ -469,7 +472,7 @@ def k():
 @glyph("z", 0x7A, SB_STRAIGHT, SB_STRAIGHT)
 def z():
     wd = 400
-    bar = THIN + 5
+    bar = BAR_THIN
     slant = STEM * 1.16  # the thick diagonal, measured horizontally
     return Glyph().add(
         rect(0, XH - bar, wd, XH),
@@ -501,7 +504,7 @@ def arm_serif(xe, y, t, h, tip=CAP_SERIF_TIP + 2, bracket=120):
     )
 
 
-ARM = CAP_THIN + 2  # horizontal arms of E F L T Z
+ARM = CAP_BAR_THIN  # horizontal arms of E F L T Z
 
 
 @glyph("H", 0x48, CAP_SB_STRAIGHT, CAP_SB_STRAIGHT)
@@ -510,7 +513,7 @@ def H():
     bar = CAP * 0.49
     return Glyph().add(
         _cap_stem(0), _cap_stem(w - CAP_STEM),
-        pen_bar(CAP_STEM, w - CAP_STEM, bar, CAP_THIN, ext=(CAP_STEM / 2, CAP_STEM / 2)),
+        pen_bar(CAP_STEM, w - CAP_STEM, bar, CAP_BAR_THIN, ext=(CAP_STEM / 2, CAP_STEM / 2)),
     )
 
 
@@ -534,7 +537,7 @@ def _e_arms(top_w, mid_w):
     mid0 = CAP * 0.48  # bottom of the middle arm, at the centre of its visible part
     return Glyph().add(
         rect(0, CAP - ARM, top_w, CAP), top,
-        pen_bar(CAP_STEM, mid_w, mid0, CAP_THIN, pivot=(CAP_STEM + mid_w) / 2,
+        pen_bar(CAP_STEM, mid_w, mid0, CAP_BAR_THIN, pivot=(CAP_STEM + mid_w) / 2,
                 ext=(CAP_STEM / 2, 0)),
     )
 
@@ -569,12 +572,12 @@ def T():
 def O():
     rx = 364
     ry = CAP / 2 + CAP_OV
-    return ring(rx, CAP / 2, rx, ry, rx - CAP_STEM * 1.02, thin=CAP_THIN)
+    return ring(rx, CAP / 2, rx, ry, rx - CAP_ROUND, thin=CAP_BOWL_THIN)
 
 
 CAP_DIAG = CAP_STEM * 1.12      # thick capital diagonal, measured horizontally
 CAP_THIN_STEM = CAP_HAIR * 2 + 4  # thin capital stems and diagonals
-CAP_BOWL_THIN = CAP_THIN          # thinnest point of capital bowls
+CAP_BOWL_THIN = CAP_THIN + 3      # thinnest point of capital bowls
 CAP_FLARE = 50                    # thin capital strokes swell by this much into their serifs
 
 
@@ -673,7 +676,7 @@ def A():
     yb = CAP * 0.29
     x0 = _line_x(apex, out_l, yb) + CAP_THIN_STEM
     x1 = _line_x(apex, out_r, yb) - CAP_DIAG
-    bar = Glyph().add(pen_bar(x0, x1, yb, CAP_THIN, flare=(BAR_FLARE * 0.25, BAR_TIP * 0.6),
+    bar = Glyph().add(pen_bar(x0, x1, yb, CAP_BAR_THIN, flare=(BAR_FLARE * 0.25, BAR_TIP * 0.6),
                               flare_len=70, ext=(60, 60)))
     return g.add(bar.clip(contour(apex, out_r, out_l)))
 
@@ -735,17 +738,18 @@ def Z():
     )
 
 
-def _c_ring(rx):
+def _c_ring(rx, dx_in=10):
+    """dx_in moves weight from the right side to the left."""
     ry = CAP / 2 + CAP_OV
-    return rx, ry, ring(rx, CAP / 2, rx, ry, rx - CAP_STEM * 0.95, thin=CAP_BOWL_THIN, dx_in=18)
+    return rx, ry, ring(rx, CAP / 2, rx, ry, rx - CAP_ROUND + dx_in / 2, thin=CAP_BOWL_THIN, dx_in=dx_in)
 
 
-def _beak(g, cx, rx, ry, yc, width=48):
-    """Top terminal of C, G: the stroke thickens into a slab with a flat
+def _beak(g, cx, rx, ry, yc, width=48, cy=CAP / 2):
+    """Top terminal of c, C, G: the stroke thickens into a slab with a flat
     outer face, its foot cut on the pen angle."""
     xe = cx + rx * 0.93
-    g.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, CAP / 2, rx, ry)))
-    g.cut(rect(xe, yc, xe + 200, CAP + 100))
+    g.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry)))
+    g.cut(rect(xe, yc, xe + 200, cy + ry + 100))
     return xe
 
 
@@ -764,7 +768,7 @@ def C():
 
 @glyph("G", 0x47, CAP_SB_ROUND, CAP_SB_STRAIGHT - 6)
 def G():
-    rx, ry, g = _c_ring(330)
+    rx, ry, g = _c_ring(330, dx_in=24)  # the right side stays lighter than the stem it runs into
     cx = rx
     yt = CAP * 0.64
     xe = _beak(g, cx, rx, ry, yt)
@@ -794,7 +798,7 @@ def G():
 def Q():
     rx = 364
     ry = CAP / 2 + CAP_OV
-    o = ring(rx, CAP / 2, rx, ry, rx - CAP_STEM * 1.02, thin=CAP_THIN)
+    o = ring(rx, CAP / 2, rx, ry, rx - CAP_ROUND, thin=CAP_BOWL_THIN)
     # Tail: a crescent between two ellipse arcs, sweeping out from under the
     # bowl and ending on a pen-angle cut.
     cx = rx
@@ -844,7 +848,7 @@ def D():
     xc = 290
     return Glyph().add(
         _cap_stem(0, head_right=False, foot_right=False),
-        _cap_bowl(CAP_STEM, 0, CAP, xc, 330, CAP_STEM * 1.04),
+        _cap_bowl(CAP_STEM, 0, CAP, xc, 330, CAP_ROUND),
     )
 
 
@@ -853,7 +857,7 @@ def P():
     yb = CAP * 0.40
     return Glyph().add(
         _cap_stem(0, head_right=False),
-        _cap_bowl(CAP_STEM, yb, CAP, 250, 230, CAP_STEM * 0.98, t_bot=CAP_BOWL_THIN + 4),
+        _cap_bowl(CAP_STEM, yb, CAP, 250, 230, CAP_ROUND * 0.96, t_bot=CAP_BOWL_THIN + 4),
     )
 
 
@@ -868,7 +872,7 @@ def R():
         rect(CAP_STEM, -10, 1000, yb + t_bot))
     return Glyph().add(
         _cap_stem(0, head_right=False),
-        _cap_bowl(CAP_STEM, yb, CAP, xc, rx, CAP_STEM * 0.98, t_bot=t_bot),
+        _cap_bowl(CAP_STEM, yb, CAP, xc, rx, CAP_ROUND * 0.96, t_bot=t_bot),
         leg, _diag_serif(foot_x - CAP_DIAG / 2, foot_x + CAP_DIAG / 2, cap=True),
     )
 
@@ -879,14 +883,14 @@ def B():
     tm = CAP_BOWL_THIN + 4
     return Glyph().add(
         _cap_stem(0, head_right=False, foot_right=False),
-        _cap_bowl(CAP_STEM, ym, CAP, 230, 200, CAP_STEM * 0.9, t_bot=tm),
-        _cap_bowl(CAP_STEM, 0, ym + tm, 250, 236, CAP_STEM * 1.0, t_top=tm),
+        _cap_bowl(CAP_STEM, ym, CAP, 230, 200, CAP_ROUND * 0.9, t_bot=tm),
+        _cap_bowl(CAP_STEM, 0, ym + tm, 250, 236, CAP_ROUND * 0.98, t_top=tm),
     )
 
 
 @glyph("S", 0x53, CAP_SB_ROUND, CAP_SB_ROUND)
 def S():
-    return _s((260, CAP / 2), CAP + CAP_OV, 236, 188, 118, 116, 40, CAP_THIN + 2, 50)
+    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 44, CAP_BOWL_THIN + 2, 52)
 
 
 # -------------------------------------------------------------- punctuation

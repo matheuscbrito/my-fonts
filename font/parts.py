@@ -339,13 +339,19 @@ def half_plane(p, q, reach=2000):
                    (p[0] + ux - uy, p[1] + uy + ux), (p[0] - ux - uy, p[1] - uy + ux))
 
 
-def pen_ellipse(cx, cy, rx, ry, x_end):
-    """An ellipse whose top-right runs off along a straight pen-angle
-    tangent to x_end, like a bowl drawn up into a stem."""
-    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(PEN), math.cos(PEN)))
-    yj = ty + (x_end - tx) * math.tan(PEN)
+def pen_ellipse(cx, cy, rx, ry, x_end, angle=PEN):
+    """An ellipse whose top-right runs off along a straight tangent rising
+    at `angle` (the pen angle) to x_end, like a bowl drawn up into a stem."""
+    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(angle), math.cos(angle)))
+    yj = ty + (x_end - tx) * math.tan(angle)
     return Glyph().add(ellipse(cx, cy, rx, ry),
                        contour((tx, ty), (x_end, yj), (x_end, cy), (cx, cy)))
+
+
+def pen_line_y(cx, cy, rx, ry, x, angle=PEN):
+    """Height at x of pen_ellipse's tangent line."""
+    (tx, ty), _ = tangent(cx, cy, rx, ry, (-math.sin(angle), math.cos(angle)))
+    return ty + (x - tx) * math.tan(angle)
 
 
 def diag(top, bottom, w):

@@ -9,7 +9,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_HAIR, CAP_OV, 
                      XH)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, nib_stroke, pen_bar,
-                    pen_ellipse, pen_side, ring, spur, tangent)
+                    pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
 GLYPHS = {}  # name -> (unicode, lsb, rsb, draw function)
 
@@ -244,34 +244,44 @@ def j():
     return Glyph().add(_stem(0, 100, XH, foot=False), hook, nib_dot(STEM / 2, XH + 190, 132))
 
 
-@glyph("a", 0x61, SB_ROUND, SB_STRAIGHT)
+@glyph("a", 0x61, SB_ROUND, SB_STRAIGHT - 10)
 def a():
     xs = 250  # left edge of the stem
-    # Hook: the top of a ring like c's, heavy where it turns down into the
-    # stem, its left end cut on the pen angle.
-    rx, ry, left = 172, 146, 62
+    k = math.tan(PEN)
+    # Hook: the top of a ring like c's, swelling from a hairline crown into
+    # a heavy shoulder, and ending on the left in a big ball whose underside
+    # is sliced off on the pen angle.
+    rx, ry, left = 186, 150, 40
     cx, cy = xs + STEM - rx, XH + OV - ry
-    hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN, dx_in=(left - STEM) / 2)
+    hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN + 3, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50))
-    hook.cut(pen_side(cx - rx - 10, cx - 40, cx - rx, cy + 46, above=False))
-    # Bowl: an ellipse whose top runs off on a straight pen-angle tangent
-    # into the stem; the counter does the same, a hairline lower.
-    rx, ry = 140, 132
-    cx, cy = xs - 100, ry - OV
+    rb = 74
+    bx, by = cx - rx + rb, cy + 44
+    ball = Glyph().add(ellipse(bx, by, rb, rb * 1.04)).cut(pen_side(bx - 200, bx + 200, bx, by - rb * 0.7, above=False))
+    hook.cut(pen_side(bx - 200, bx + rb, bx, by - rb * 0.7, above=False), rect(bx - 200, cy - 10, bx, by))
+    # Bowl: a wide ellipse whose top runs off on a pen-angle tangent into
+    # the stem. The counter is narrow and climbs into the stem more steeply,
+    # so the diagonal is a hairline at the stem and swells to the left.
+    rx, ry = 150, 140
+    cx, cy = xs - 110, ry - OV
     xj = xs + STEM / 2
-    n = (-math.sin(PEN), math.cos(PEN))
-    h_out = tangent(cx, cy, rx, ry, n)[1]
-    x0, x1, y0 = cx - rx + STEM * 0.94, xs + 4, -OV + O_THIN + 5
+    x0, x1, y0 = cx - rx + STEM * 1.18, xs + 2, -OV + O_THIN + 4
     rxi, cxi = (x1 - x0) / 2, (x0 + x1) / 2
-    lo, hi = 20, ry * 1.5  # counter height that leaves the diagonal ARCH_THIN + 2 thick
+    steep = PEN * 1.9
+    gap = pen_line_y(cx, cy, rx, ry, xs) - ARCH_THIN - 4  # counter tip height at the stem
+    lo, hi = 20, ry * 2
     for _ in range(30):
         mid = (lo + hi) / 2
-        if tangent(cxi, y0 + mid, rxi, mid, n)[1] < h_out - ARCH_THIN - 2:
+        if pen_line_y(cxi, y0 + mid, rxi, mid, xs, steep) < gap:
             lo = mid
         else:
             hi = mid
-    bowl_ = pen_ellipse(cx, cy, rx, ry, xj).cut(pen_ellipse(cxi, y0 + lo, rxi, lo, xj))
-    return Glyph().add(bowl_, hook, rect(xs, 60, xs + STEM, XH + OV - 146 + 1), spur(xs, xs + STEM))
+    bowl_ = pen_ellipse(cx, cy, rx, ry, xj).cut(pen_ellipse(cxi, y0 + lo, rxi, lo, xj, steep))
+    # Stem foot: one long pen-angle cut from below the bowl's join out to a
+    # sharp spur, its upper edge running straight back into the stem.
+    xt = xs + STEM + 78
+    foot = contour((xs, -OV), (xt, -OV + (xt - xs) * k), (xs + STEM, 92), (xs, 92))
+    return Glyph().add(bowl_, hook, ball, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
 
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)

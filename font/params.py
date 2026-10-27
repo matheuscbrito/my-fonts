@@ -21,8 +21,11 @@ CAP_OV = 13        # overshoot of round capitals
 # Stroke contrast: heavy stems against needle-thin hairlines
 STEM = 106         # lowercase vertical stem
 CAP_STEM = 114     # capital vertical stem
-HAIR = 11          # lowercase hairline
-CAP_HAIR = 13      # capital hairline (crossbars, arms)
+HAIR = 11          # lowercase hairline (serif tips and fine details)
+CAP_HAIR = 13      # capital hairline
+# The thin strokes that carry a letter, kept even across the alphabet
+THIN = 18          # lowercase bars, links, ears, arches and bowls
+CAP_THIN = 19      # capital crossbars and the thinnest points of capital bowls
 
 # Serifs (flared diagonal wedges, cut like a broad-nib pen)
 HEAD = 92          # lowercase head serif reach to the left
@@ -42,12 +45,12 @@ BAR_TIP = 88       # extra thickness at the right tip, the expressive end
 BAR_FLARE_LEN = 150  # how far in from the end the swelling starts
 
 # Arches (n, m, h, u)
-ARCH_THIN = 17     # thickness at the top of the arch
+ARCH_THIN = THIN   # thickness at the top of the arch
 N_COUNTER = 230    # white space inside n
 M_COUNTER = 198    # white space inside each half of m
 
 # Round shapes
-O_THIN = 13        # thinnest point of bowls
+O_THIN = THIN      # thinnest point of bowls
 STRESS = 0         # tilt of the stress axis in degrees (0 = vertical, negative leans right)
 K_OUT = 0.5523     # curve fullness of outer contours (0.5523 = true ellipse, geometric)
 K_IN = 0.5523      # inner contours match, keeping counters pure ellipses

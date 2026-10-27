@@ -6,7 +6,7 @@ import pathops
 from .draw import KAPPA, Glyph, circle, contour, ellipse
 from .params import (ARCH_THIN, BRACKET, CAP_BRACKET, CAP_SERIF, CAP_SERIF_TIP,
                      HEAD, HEAD_SLOPE, K_IN, K_OUT, O_THIN, OV, SERIF,
-                     BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, HAIR, PEN, SERIF_TIP, STEM, STRESS)
+                     BAR_FLARE, BAR_FLARE_LEN, BAR_TIP, HAIR, PEN, SERIF_TIP, STEM, STRESS, THIN)
 
 
 def foot_serif(x0, x1, y=0, reach=SERIF, tip=SERIF_TIP, bracket=BRACKET,
@@ -232,7 +232,7 @@ def _hull(pts):
     return lower[:-1] + upper[:-1]
 
 
-def nib_stroke(segments, width=STEM, height=HAIR, angle=0, taper=(0, 0), samples=40):
+def nib_stroke(segments, width=STEM, height=THIN, angle=0, taper=(0, 0), samples=40):
     """Sweep a flat broad-nib pen (a width x height ellipse turned by
     `angle` degrees) along a chain of cubic segments (p0, c1, c2, p3).
     Strokes moving up and down come out `width` thick, sideways ones

@@ -11,6 +11,7 @@ is original.
 - `font/draw.py`: drawing primitives (contours, ellipses, boolean union/cut).
 - `font/parts.py`: reusable letter parts (serifs, arches, bowls, pen-angle bars and cuts, the broad-nib `nib_stroke`).
 - `font/glyphs.py`: one function per glyph.
+- `font/kerning.py`: kerning groups and values, written to the `kern` feature at build time.
 - `build.py`: draws every glyph and writes `dist/*.otf` and `dist/*.woff2`.
 - `specimen/index.html`: specimen page. `specimen/proof.html?t=nohO&s=300`: big close-up proof.
 
@@ -48,3 +49,7 @@ shared pen angle (`PEN`), finish in teardrops (a, J), or thicken into
 flat-faced beaks (s, S, C, G). Crossbars rise at the pen angle and flare at
 their ends. f and j still use `nib_stroke`, which sweeps a flat pen along a
 curve.
+
+Thin strokes share two weights in `params.py`: `THIN` (18) for lowercase bars,
+links, arches and bowls, and `CAP_THIN` (19) for capital crossbars and bowls.
+Change either to lighten or darken the hairlines across the whole alphabet.

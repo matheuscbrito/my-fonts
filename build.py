@@ -2,6 +2,7 @@
 and write OTF + WOFF2 to dist/."""
 import os
 
+from fontTools.feaLib.builder import addOpenTypeFeaturesFromString
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.transformPen import TransformPen
@@ -9,6 +10,7 @@ from fontTools.ttLib import TTFont
 
 from font import params as P
 from font.glyphs import GLYPHS
+from font.kerning import feature as kern_feature
 
 DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
@@ -77,6 +79,7 @@ def build():
         fsSelection=0x40 | 0x80,  # REGULAR, USE_TYPO_METRICS
     )
     fb.setupPost()
+    addOpenTypeFeaturesFromString(fb.font, kern_feature())
 
     os.makedirs(DIST, exist_ok=True)
     otf = os.path.join(DIST, ps_name + ".otf")

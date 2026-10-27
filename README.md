@@ -48,8 +48,10 @@ ellipses inside and out: rings (an ellipse minus a counter), ellipses run off
 along straight pen-angle tangents into stems, and bowls joined by straight
 spines tangent to both (s, S). Where a curved stroke starts it is cut thin on
 the shared pen angle (`PEN`), as at the foot of c, e and C; where it ends it
-swells into a teardrop whose tail follows the stroke (a, c, f, g, j, s, t, C,
-G, J, S), all from one helper, `_tear_end`. Straight strokes follow the
+swells into a sharp pressure wedge, the curved twin of the crossbars' tip: a
+flat face cut square across the stroke, its inner side widening toward it in
+a straight line (a, c, f, g, j, s, t, y, C, G, J, S), all from one helper,
+`_tear_end`. The Q's tail and the comma are straight tapered strokes. Straight strokes follow the
 same order: crossbars start as a hairline on the left and end in a heavy
 right tip (`BAR_FLARE`, `BAR_TIP`); thick diagonals are written downward,
 narrow at the top and heavier at the bottom (`DIAG_TAPER`), reversed in the

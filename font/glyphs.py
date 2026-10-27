@@ -191,23 +191,50 @@ def q():
 _CORNERS = {"top_right": None, "top_left": (-1, 1), "bottom_left": (-1, -1), "bottom_right": (1, -1)}
 
 
-def _tear_end(g, cx, cy, rx, ry, yc, rb, corner="top_right", length=2.4, cut=True):
-    """Teardrop terminal, the brush lifting off under pressure: the stroke
-    swells into a ball whose tail runs back along its inner edge, the ball's
-    outer side flush with the ring (cx, cy, rx, ry). Drawn as if the stroke
-    ends at the ring's top right at height yc, then mirrored or turned into
-    the other corners; cut=True first trims the ring's right side below yc."""
+def _tear_end(g, cx, cy, rx, ry, yc, rb, corner="top_right", cut=True):
+    """Pressure terminal, the curved-stroke twin of the crossbars' tip: the
+    stroke ends on a flat face cut square across it, and its inner side
+    swells toward that face in a straight line, so the end is heavy but
+    sharp. Drawn as if the stroke ends on the ring (cx, cy, rx, ry) at its
+    top right at height yc, then mirrored or turned into the other corners.
+    rb sets the size of the swell; cut=True first trims the ring's right
+    side below yc."""
     flip = _CORNERS[corner]
     if flip:
         g.path = g.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
     if cut:
         g.cut(rect(cx + rx * 0.2, cy - ry - 10, cx + rx + 10, yc))
     th = math.asin(max(-1, min(1, (yc - cy) / ry)))
-    xe = cx + rx * math.cos(th)
-    # The tail follows the stroke: parallel to the ring's edge where it ends.
-    angle = math.degrees(math.atan2(rx * math.sin(th), ry * math.cos(th))) + 4
-    g.add(Glyph().add(drop(xe - rb, yc, rb, angle, rb * length)).clip(
-        Glyph().add(ellipse(cx, cy, rx, ry), rect(cx, cy - ry - 10, cx + rx + 10, yc))))
+    A = (cx + rx * math.cos(th), yc)
+    phi = math.atan2(rx * math.sin(th), ry * math.cos(th))  # stroke direction, from vertical
+    d = (-math.sin(phi), math.cos(phi))       # back along the stroke
+    n_in = (-math.cos(phi), -math.sin(phi))   # across it, toward the counter
+
+    def across(P):
+        """How far the stroke runs left of P, a point on its outer edge.
+        Walking level keeps clear of the trimmed end below yc."""
+        t = 2
+        while t < 300 and g.path.contains((P[0] - t, P[1])):
+            t += 1
+        return t
+
+    def inner(th2):
+        P = (cx + rx * math.cos(th2) - 1, cy + ry * math.sin(th2))
+        return (P[0] - across(P) - 2, P[1])  # just past the edge, so the fill overlaps it
+
+    # The face is as wide as the stroke plus the swell.
+    w = across((A[0] - 1, A[1] + 2)) * math.cos(phi) + rb * 0.75
+    B = (A[0] + w * n_in[0], A[1] + w * n_in[1])
+
+    # The swelling side runs straight from the face's inner corner to the
+    # stroke's inner edge a little way back; the swell is filled along that
+    # edge so no pocket of counter is closed off.
+    reach = min(rb * 2.2 / ((rx + ry) / 2), 0.7)
+    edge = [inner(th + reach * i / 12) for i in range(12, 0, -1)]
+    C = edge[0]
+    # Nothing of the stroke carries on past the face.
+    g.cut(Glyph().add(half_plane(A, B)).clip(rect(cx + rx * 0.2, min(A[1], B[1]) - 2, cx + rx + 10, cy + ry + 10)))
+    g.add(Glyph().add(contour(A, B, C), contour(A, *edge)).clip(ellipse(cx, cy, rx, ry)))
     if flip:
         g.path = g.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
     return g
@@ -503,8 +530,8 @@ def k():
 @glyph("z", 0x7A, SB_STRAIGHT, SB_STRAIGHT)
 def z():
     wd = 400
-    bar = BAR_THIN + 6
-    slant = STEM * 1.3  # the thick diagonal, measured horizontally
+    bar = BAR_THIN + 3
+    slant = STEM * 1.2  # the thick diagonal, measured horizontally
     return Glyph().add(
         rect(0, XH - bar, wd, XH),
         contour((wd - slant * DIAG_TAPER[0], XH - bar), (wd, XH - bar), (slant * DIAG_TAPER[1], bar), (0, bar)),
@@ -819,12 +846,13 @@ def Q():
     rx = 364
     ry = CAP / 2 + CAP_OV
     o = ring(rx, CAP / 2, rx, ry, rx - CAP_ROUND, thin=CAP_BOWL_THIN)
-    # Tail: a crescent between two ellipse arcs, sweeping out from under the
-    # bowl and ending on a pen-angle cut.
+    # Tail: a straight stroke leaving the bottom of the bowl as a hairline
+    # and pressing down to the right, ending on a face cut on the pen angle.
     cx = rx
-    tail = Glyph().add(ellipse(cx + 290, -4, 300, 170)).cut(ellipse(cx + 330, 40, 290, 180))
-    tail.clip(rect(cx - 40, -400, cx + rx + 120, 0))
-    tail.cut(pen_side(cx + 200, cx + rx + 200, cx + 390, -150, above=False))
+    k = math.tan(PEN)
+    x_end, y_end, face = cx + rx + 60, -170, 70
+    tail = contour((cx - 30, 30), (cx - 8, 30),
+                   (x_end + face, y_end + face * k), (x_end, y_end))
     return o.add(tail)
 
 
@@ -923,14 +951,12 @@ def period():
 
 @glyph("comma", 0x2C, 34, 40)
 def comma():
-    cx = DOT
-    tail = contour(
-        (cx + DOT - 2, DOT + 6),
-        ((cx + DOT + 4, -20), (cx + 20, -110), (cx - 36, -165)),
-        (cx - 46, -152),
-        ((cx - 6, -110), (cx + 12, -50), (cx + 4, 10)),
-    )
-    return Glyph().add(nib_dot(cx, DOT + 4, DOT * 2.1), tail)
+    # The period's square, with a straight tail tapering down and left to a
+    # sharp point, like a stroke flicked off the pen.
+    cx, cy, h = DOT, DOT + 4, DOT * 2.1 * 0.92
+    x1, y0 = cx + h / 2, cy - h / 2
+    tail = contour((x1, y0 + 20), (x1, y0), (cx - h * 0.45, y0 - 150), (cx - h * 0.05, y0))
+    return Glyph().add(nib_dot(cx, cy, DOT * 2.1), tail)
 
 
 @glyph("space", 0x20, 0, SPACE)

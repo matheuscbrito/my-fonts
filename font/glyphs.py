@@ -135,7 +135,7 @@ def c():
     # Like C: the top thickens into a flat-faced beak, the bottom ends on a
     # pen-angle cut.
     yt, yb = XH * 0.62, XH * 0.25
-    xe = _beak(g, cx, rx, ry, yt, width=40, cy=XH / 2)
+    xe = _beak(g, cx, rx, ry, yt, width=58, cy=XH / 2)
     return g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
                  .clip(pen_side(cx + 20, cx + rx + 60, cx + rx, yb)))
 
@@ -242,11 +242,11 @@ def f():
     # Hook: the a's hook mirrored. The top of a ring leaves the stem's two
     # sides straight up, thins over the crown and ends on the right in a
     # blunt end.
-    rx, ry, right = 150, 128, 44
+    rx, ry, right = 150, 128, 68
     cx, cy = rx, ASC + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + right) / 2, thin=O_THIN + 2, dx_in=(STEM - right) / 2)
     hook.clip(rect(-10, cy, cx + rx + 10, ASC + 50))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 50)
+    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 70)
     return Glyph().add(
         rect(0, 0, STEM, cy + 1), foot_serif(0, STEM, reach=SERIF * 1.2), hook,
         pen_bar(-80, STEM + 140, XH - 34, BAR_THIN, pivot=STEM / 2,
@@ -258,11 +258,11 @@ def f():
 def j():
     # Hook: the J's at lowercase size, the lower half of a ring leaving the
     # stem straight down and ending on the left in a blunt end.
-    rx, ry, left = 146, 124, 50
+    rx, ry, left = 146, 124, 70
     cx, cy = STEM - rx, DESC - OV + ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 52, "bottom_left")
+    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 70, "bottom_left")
     return Glyph().add(_stem(0, cy - 1, XH, foot=False), hook, nib_dot(STEM / 2, XH + 190, 132))
 
 
@@ -272,11 +272,11 @@ def a():
     k = math.tan(PEN)
     # Hook: the top of a ring like c's, swelling from a hairline crown into
     # a heavy shoulder, and ending on the left in a blunt end.
-    rx, ry, left = 186, 150, 50
+    rx, ry, left = 186, 150, 74
     cx, cy = xs + STEM - rx, XH + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 6, 58, "top_left")
+    _blunt_end(hook, cx, cy, rx, ry, cy + 6, 76, "top_left")
     # Bowl: a wide ellipse whose top runs off on a pen-angle tangent into
     # the stem. The counter is narrow and climbs into the stem more steeply,
     # so the diagonal is a hairline at the stem and swells to the left.
@@ -341,7 +341,7 @@ def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(36)):
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)
 def s():
-    return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 38, O_THIN + 2, 42)
+    return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 48, O_THIN + 2, 58)
 
 
 @glyph("g", 0x67, SB_ROUND, SB_STRAIGHT)
@@ -349,11 +349,11 @@ def g():
     # The q's bowl and stem, the stem running down into the j's hook: the
     # lower half of a ring as wide as the bowl, ending on the left in a
     # blunt end.
-    rx, ry, left = 214, 136, 52
+    rx, ry, left = 214, 136, 74
     cx, cy = STEM - rx, DESC - OV + ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 56, "bottom_left")
+    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 76, "bottom_left")
     return Glyph().add(bowl(0, -1, BOWL, XH), rect(0, cy - 1, STEM, XH - OV), hook)
 
 
@@ -756,7 +756,7 @@ def _c_ring(rx, dx_in=10):
     return rx, ry, ring(rx, CAP / 2, rx, ry, rx - CAP_ROUND + dx_in / 2, thin=CAP_BOWL_THIN, dx_in=dx_in)
 
 
-def _beak(g, cx, rx, ry, yc, width=48, cy=CAP / 2):
+def _beak(g, cx, rx, ry, yc, width=66, cy=CAP / 2):
     """Top terminal of c, C, G: the stroke thickens into a slab with a flat
     outer face, its foot cut on the pen angle."""
     xe = cx + rx * 0.93
@@ -841,14 +841,14 @@ def U():
 def J():
     x0 = 230
     x1 = x0 + CAP_STEM
-    rx, cy, left = 210, 168, 60  # a shallow bowl keeps the bottom flat
+    rx, cy, left = 210, 168, 86  # a shallow bowl keeps the bottom flat
     cx = x1 - rx
     # Hook: the lower half of a ring leaving the stem straight down, ending
     # on the left in a blunt end, the a's terminal turned upside down.
     hook = ring(cx, cy, rx, cy + CAP_OV, rx - (CAP_STEM + left) / 2, thin=CAP_BOWL_THIN,
                 dx_in=(left - CAP_STEM) / 2)
     hook.clip(rect(cx - rx - 10, -100, x1 + 10, cy))
-    _blunt_end(hook, cx, cy, rx, cy + CAP_OV, cy + 6, 64, "bottom_left")
+    _blunt_end(hook, cx, cy, rx, cy + CAP_OV, cy + 6, 88, "bottom_left")
     return Glyph().add(hook, rect(x0, cy - 1, x1, CAP), cap_head(x0, x1, CAP))
 
 
@@ -899,7 +899,7 @@ def B():
 
 @glyph("S", 0x53, CAP_SB_ROUND, CAP_SB_ROUND)
 def S():
-    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 44, CAP_BOWL_THIN + 2, 52)
+    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 54, CAP_BOWL_THIN + 2, 70)
 
 
 # -------------------------------------------------------------- punctuation

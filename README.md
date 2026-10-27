@@ -42,18 +42,19 @@ h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; 
 - Capitals: the full alphabet, `A` to `Z`.
 - Punctuation: `. ,` and space.
 
-Curves are built from superellipses (`K_OUT`, `K_IN`: flatter sides, harder
-corners) and arches squared by `ARCH_K`. Built from them: rings (an ellipse minus a counter),
-ellipses run off along straight pen-angle tangents into stems, and bowls
-joined by straight spines tangent to both (s, S). Tangents to the flatter
-shapes are found numerically, so every join stays smooth. Stroke ends are cut on the
-shared pen angle (`PEN`) or thicken into blunt, flat-faced ends whose feet
-are cut on the pen angle (a, c, f, g, j, s, C, G, J, S). Crossbars rise at
-the pen angle and widen toward their ends.
+The strokes follow a brush: each one starts thin and ends with pressure,
+except straight vertical stems, which keep one weight. Curves are true
+ellipses inside and out: rings (an ellipse minus a counter), ellipses run off
+along straight pen-angle tangents into stems, and bowls joined by straight
+spines tangent to both (s, S). Where a curved stroke starts it is cut thin on
+the shared pen angle (`PEN`), as at the foot of c, e and C; where it ends it
+swells into a teardrop whose tail follows the stroke (a, c, f, g, j, s, t, C,
+G, J, S), all from one helper, `_tear_end`. Crossbars rise at the pen angle
+and widen toward their right ends.
 
-Everything that is not a bowl is drawn in straight lines: serifs are
+Everything that is not a curve is drawn in straight lines: serifs are
 triangular wedges, stem heads are straight diagonal cuts, flares are straight
-tapers and dots are squares. Curves appear only where a letter is round.
+tapers and dots are squares.
 
 The a is the model for the weights in `params.py`. Curves run heavier than
 stems so they read equally dark: `ROUND` (119) for lowercase, `CAP_ROUND`

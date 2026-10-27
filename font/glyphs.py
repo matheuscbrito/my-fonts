@@ -8,7 +8,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, CAP, CAP_BRACKET, CAP_H
                      CAP_SB_STRAIGHT, CAP_STEM, DESC, HAIR, M_COUNTER,
                      K_IN, K_OUT, N_COUNTER, O_THIN, OV, PEN, SB_ROUND, SB_STRAIGHT, SERIF, SPACE, STEM,
                      XH)
-from .parts import (arch, bowl, cap_foot, cap_head, diag, flared_stroke, foot_serif,
+from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, nib_dot, pen_bar,
                     pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
 
@@ -132,12 +132,12 @@ def c():
     ry = XH / 2 + OV
     cx = rx
     g = ring(cx, XH / 2, rx, ry, rx - ROUND, dx_in=8)
-    # Like C: the top thickens into a flat-faced beak, the bottom ends on a
-    # pen-angle cut.
-    yt, yb = XH * 0.62, XH * 0.25
-    xe = _beak(g, cx, rx, ry, yt, width=58, cy=XH / 2)
-    return g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
-                 .clip(pen_side(cx + 20, cx + rx + 60, cx + rx, yb)))
+    # Like C: the stroke starts thin on a pen-angle cut at the bottom and
+    # ends at the top in a teardrop.
+    yt, yb = XH * 0.66, XH * 0.25
+    g.cut(Glyph().add(rect(cx + 20, -100, cx + rx + 60, yt))
+          .clip(pen_side(cx + 20, cx + rx + 60, cx + rx, yb)))
+    return _tear_end(g, cx, XH / 2, rx, ry, yt, 50, cut=False)
 
 
 @glyph("e", 0x65, SB_ROUND, SB_ROUND - 4)
@@ -197,24 +197,29 @@ def q():
 
 # ------------------------------------------------- lowercase: pen-drawn curves
 
-_CORNERS = {"top_right": None, "top_left": (-1, 1), "bottom_left": (-1, -1)}
+_CORNERS = {"top_right": None, "top_left": (-1, 1), "bottom_left": (-1, -1), "bottom_right": (1, -1)}
 
 
-def _blunt_end(hook, cx, cy, rx, ry, yc, width, corner="top_right"):
-    """Blunt terminal for a hook cut from the ring (cx, cy, rx, ry): the
-    stroke thickens into a slab with a flat outer face and a foot cut on
-    the pen angle, like the s and c. It is drawn at the ring's top right
-    and mirrored or turned into the other corners; yc is the foot's height
-    at the face, measured as if at the top right."""
+def _tear_end(g, cx, cy, rx, ry, yc, rb, corner="top_right", length=2.4, cut=True):
+    """Teardrop terminal, the brush lifting off under pressure: the stroke
+    swells into a ball whose tail runs back along its inner edge, the ball's
+    outer side flush with the ring (cx, cy, rx, ry). Drawn as if the stroke
+    ends at the ring's top right at height yc, then mirrored or turned into
+    the other corners; cut=True first trims the ring's right side below yc."""
     flip = _CORNERS[corner]
     if flip:
-        hook.path = hook.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
-    xe = cx + rx * 0.94
-    hook.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry, K_OUT)))
-    hook.cut(rect(xe, cy - ry - 10, xe + 200, cy + ry + 10))
+        g.path = g.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
+    if cut:
+        g.cut(rect(cx + rx * 0.2, cy - ry - 10, cx + rx + 10, yc))
+    th = math.asin(max(-1, min(1, (yc - cy) / ry)))
+    xe = cx + rx * math.cos(th)
+    # The tail follows the stroke: parallel to the ring's edge where it ends.
+    angle = math.degrees(math.atan2(rx * math.sin(th), ry * math.cos(th))) + 4
+    g.add(Glyph().add(drop(xe - rb, yc, rb, angle, rb * length)).clip(
+        Glyph().add(ellipse(cx, cy, rx, ry), rect(cx, cy - ry - 10, cx + rx + 10, yc))))
     if flip:
-        hook.path = hook.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
-    return hook
+        g.path = g.path.transform(flip[0], 0, 0, flip[1], (1 - flip[0]) * cx, (1 - flip[1]) * cy)
+    return g
 
 
 @glyph("t", 0x74, SB_STRAIGHT, SB_ROUND - 14)
@@ -223,12 +228,13 @@ def t():
     top = XH + 140
     # Hook: the lower half of a ring whose outer and inner edges leave the
     # stem's two sides straight down, thinning round the bottom and ending
-    # in a pen-angle cut.
+    # in a teardrop.
     rx, ry, right = 150, 164, 30
     cy = ry - OV
     dx_in = (STEM - right) / 2
     hook = ring(rx, cy, rx, ry, rx + dx_in - STEM, thin=O_THIN + 4, dx_in=dx_in)
-    hook.clip(rect(-10, -100, 2 * rx + 10, cy)).cut(pen_side(rx + 20, 2 * rx + 20, 2 * rx, 92))
+    hook.clip(rect(-10, -100, 2 * rx + 10, cy))
+    _tear_end(hook, rx, cy, rx, ry, 2 * cy - 100, 42, "bottom_right")
     stem = Glyph().add(rect(0, cy - 1, STEM, top + 10)).clip(pen_side(-10, STEM + 10, STEM, top, above=False))
     return Glyph().add(
         stem, hook,
@@ -241,12 +247,12 @@ def t():
 def f():
     # Hook: the a's hook mirrored. The top of a ring leaves the stem's two
     # sides straight up, thins over the crown and ends on the right in a
-    # blunt end.
-    rx, ry, right = 150, 128, 68
+    # teardrop.
+    rx, ry, right = 150, 128, 40
     cx, cy = rx, ASC + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + right) / 2, thin=O_THIN + 2, dx_in=(STEM - right) / 2)
     hook.clip(rect(-10, cy, cx + rx + 10, ASC + 50))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 70)
+    _tear_end(hook, cx, cy, rx, ry, cy + 26, 50)
     return Glyph().add(
         rect(0, 0, STEM, cy + 1), foot_serif(0, STEM, reach=SERIF * 1.2), hook,
         pen_bar(-80, STEM + 140, XH - 34, BAR_THIN, pivot=STEM / 2,
@@ -257,12 +263,12 @@ def f():
 @glyph("j", 0x6A, SB_STRAIGHT - 20, SB_STRAIGHT)
 def j():
     # Hook: the J's at lowercase size, the lower half of a ring leaving the
-    # stem straight down and ending on the left in a blunt end.
-    rx, ry, left = 146, 124, 70
+    # stem straight down and ending on the left in a teardrop.
+    rx, ry, left = 146, 124, 46
     cx, cy = STEM - rx, DESC - OV + ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 70, "bottom_left")
+    _tear_end(hook, cx, cy, rx, ry, cy, 46, "bottom_left")
     return Glyph().add(_stem(0, cy - 1, XH, foot=False), hook, nib_dot(STEM / 2, XH + 190, 132))
 
 
@@ -271,12 +277,12 @@ def a():
     xs = 250  # left edge of the stem
     k = math.tan(PEN)
     # Hook: the top of a ring like c's, swelling from a hairline crown into
-    # a heavy shoulder, and ending on the left in a blunt end.
-    rx, ry, left = 186, 150, 74
+    # a heavy shoulder, and ending on the left in a teardrop.
+    rx, ry, left = 186, 150, 40
     cx, cy = xs + STEM - rx, XH + OV - ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=ARCH_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, cy, xs + STEM + 10, XH + 50))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 6, 76, "top_left")
+    _tear_end(hook, cx, cy, rx, ry, cy + 30, 56, "top_left")
     # Bowl: a wide ellipse whose top runs off on a pen-angle tangent into
     # the stem. The counter is narrow and climbs into the stem more steeply,
     # so the diagonal is a hairline at the stem and swells to the left.
@@ -302,12 +308,12 @@ def a():
     return Glyph().add(bowl_, hook, rect(xs, 60, xs + STEM, XH + OV - 150 + 1), foot)
 
 
-def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(26)):
+def _s(C, top, rx, ry, W, left, right, hair, tear, fall=math.radians(36)):
     """Two elliptical bowls joined by a straight spine: each bowl's outer
     ellipse touches one edge of the spine and its counter the other, so
     every edge runs on smoothly. The lower half is the upper turned 180°
     around C. W is the spine weight measured across; left/right are the
-    upper bowl's side weights; beak is the terminal slab's width."""
+    upper bowl's side weights; tear is the teardrop's radius."""
     n = (math.sin(fall), math.cos(fall))
     nC = n[0] * C[0] + n[1] * C[1]
     cy = top - ry
@@ -329,11 +335,8 @@ def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(26)):
     upper = Glyph().add(ellipse(cx, cy, rx, ry, K_OUT)).cut(ellipse(cxi, cyi, rxi, lo, K_IN))
     # Drop the bowl's bottom past the spine joint, and cut the terminal.
     upper.cut(Glyph().add(half_plane(t_i, t_o)).clip(rect(-1000, -1000, 2000, cy)))
-    # Beak: the terminal thickens into a slab with a flat outer face, its
-    # foot cut on the pen angle.
-    xe, yc = cx + rx * 0.94, cy - ry * 0.04
-    upper.add(Glyph().add(pen_side(xe - beak, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry, K_OUT)))
-    upper.cut(pen_side(cx + 20, cx + rx + 40, xe, yc, above=False), rect(xe, yc - 400, xe + 100, cy + ry))
+    # The terminal swells into a teardrop of radius `tear`.
+    _tear_end(upper, cx, cy, rx, ry, cy + ry * 0.04, tear)
     turn = lambda p: (2 * C[0] - p[0], 2 * C[1] - p[1])
     spine = contour(t_o, turn(t_i), turn(t_o), t_i)
     return Glyph().add(upper, upper.turn(*C), spine)
@@ -341,19 +344,19 @@ def _s(C, top, rx, ry, W, left, right, hair, beak, fall=math.radians(26)):
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)
 def s():
-    return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 48, O_THIN + 2, 58)
+    return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 38, O_THIN + 2, 44)
 
 
 @glyph("g", 0x67, SB_ROUND, SB_STRAIGHT)
 def g():
     # The q's bowl and stem, the stem running down into the j's hook: the
     # lower half of a ring as wide as the bowl, ending on the left in a
-    # blunt end.
-    rx, ry, left = 214, 136, 74
+    # teardrop.
+    rx, ry, left = 214, 136, 52
     cx, cy = STEM - rx, DESC - OV + ry
     hook = ring(cx, cy, rx, ry, rx - (STEM + left) / 2, thin=O_THIN + 2, dx_in=(left - STEM) / 2)
     hook.clip(rect(cx - rx - 10, DESC - 100, STEM + 10, cy))
-    _blunt_end(hook, cx, cy, rx, ry, cy + 4, 76, "bottom_left")
+    _tear_end(hook, cx, cy, rx, ry, cy, 50, "bottom_left")
     return Glyph().add(bowl(0, -1, BOWL, XH), rect(0, cy - 1, STEM, XH - OV), hook)
 
 
@@ -752,34 +755,23 @@ def _c_ring(rx, dx_in=10):
     return rx, ry, ring(rx, CAP / 2, rx, ry, rx - CAP_ROUND + dx_in / 2, thin=CAP_BOWL_THIN, dx_in=dx_in)
 
 
-def _beak(g, cx, rx, ry, yc, width=66, cy=CAP / 2):
-    """Top terminal of c, C, G: the stroke thickens into a slab with a flat
-    outer face, its foot cut on the pen angle."""
-    xe = cx + rx * 0.93
-    g.add(Glyph().add(pen_side(xe - width, xe, xe, yc)).clip(ellipse(cx, cy, rx, ry, K_OUT)))
-    g.cut(rect(xe, yc, xe + 200, cy + ry + 100))
-    return xe
-
-
 @glyph("C", 0x43, CAP_SB_ROUND, CAP_SB_ROUND - 14)
 def C():
     rx, ry, g = _c_ring(322)
     cx = rx
-    yt, yb = CAP * 0.64, CAP * 0.26
-    xe = _beak(g, cx, rx, ry, yt)
-    # Aperture between the beak's pen-cut foot and the lower terminal's
-    # pen-cut end.
-    g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
+    yt, yb = CAP * 0.68, CAP * 0.26
+    # The stroke starts thin on a pen-angle cut at the bottom and ends at
+    # the top in a teardrop.
+    g.cut(Glyph().add(rect(cx + 20, -100, cx + rx + 60, yt))
           .clip(pen_side(cx + 20, cx + rx + 60, cx + rx, yb)))
-    return g
+    return _tear_end(g, cx, CAP / 2, rx, ry, yt, 58, cut=False)
 
 
 @glyph("G", 0x47, CAP_SB_ROUND, CAP_SB_STRAIGHT - 6)
 def G():
     rx, ry, g = _c_ring(330, dx_in=24)  # the right side stays lighter than the stem it runs into
     cx = rx
-    yt = CAP * 0.64
-    xe = _beak(g, cx, rx, ry, yt)
+    yt = CAP * 0.68
     # A short stem whose outer edge carries on straight down from the
     # bowl's widest point, with a spur at the foot. Its head is the u's
     # wedge: the top runs straight up the pen angle from the tip to the
@@ -792,8 +784,8 @@ def G():
     reach = 84
     tip = (xs0 - reach, y_join + 74)
     yg = tip[1] + (CAP_STEM + reach) * math.tan(PEN)
-    g.cut(Glyph().add(pen_side(cx + 20, cx + rx + 60, xe, yt, above=False))
-          .clip(rect(cx + 20, yg - 40, cx + rx + 60, CAP)))
+    g.cut(rect(cx + 20, yg - 40, cx + rx + 60, yt))
+    _tear_end(g, cx, CAP / 2, rx, ry, yt, 58, cut=False)
     head = contour(
         (xs1, yg), tip, (tip[0], tip[1] - CAP_SERIF_TIP),
         ((xs0 - reach * 0.5, tip[1] - 14), (xs0 - 6, tip[1] - 40), (xs0, y_join - 6)),
@@ -837,14 +829,14 @@ def U():
 def J():
     x0 = 230
     x1 = x0 + CAP_STEM
-    rx, cy, left = 210, 168, 86  # a shallow bowl keeps the bottom flat
+    rx, cy, left = 210, 168, 60  # a shallow bowl keeps the bottom flat
     cx = x1 - rx
     # Hook: the lower half of a ring leaving the stem straight down, ending
-    # on the left in a blunt end, the a's terminal turned upside down.
+    # on the left in a teardrop, the a's terminal turned upside down.
     hook = ring(cx, cy, rx, cy + CAP_OV, rx - (CAP_STEM + left) / 2, thin=CAP_BOWL_THIN,
                 dx_in=(left - CAP_STEM) / 2)
     hook.clip(rect(cx - rx - 10, -100, x1 + 10, cy))
-    _blunt_end(hook, cx, cy, rx, cy + CAP_OV, cy + 6, 88, "bottom_left")
+    _tear_end(hook, cx, cy, rx, cy + CAP_OV, cy, 54, "bottom_left")
     return Glyph().add(hook, rect(x0, cy - 1, x1, CAP), cap_head(x0, x1, CAP))
 
 
@@ -895,7 +887,7 @@ def B():
 
 @glyph("S", 0x53, CAP_SB_ROUND, CAP_SB_ROUND)
 def S():
-    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 54, CAP_BOWL_THIN + 2, 70)
+    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 44, CAP_BOWL_THIN + 2, 52)
 
 
 # -------------------------------------------------------------- punctuation

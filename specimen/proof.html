@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Senna Display Proof</title>
+<style>
+  body { margin: 0; background: #fff; color: #000; padding: 20px; }
+  #t { font-family: "Senna Display"; line-height: 1.1; white-space: pre-wrap; }
+</style>
+<script>
+  // Load the font with a cache-buster so every rebuild shows up on refresh.
+  new FontFace("Senna Display", `url(../dist/SennaDisplay-Regular.woff2?v=${Date.now()})`)
+    .load().then(f => document.fonts.add(f));
+</script>
+</head>
+<body>
+<!-- Big close-up proof: proof.html?t=nohO&s=300 -->
+<div id="t"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const el = document.getElementById("t");
+  el.textContent = q.get("t") || "nohO";
+  el.style.fontSize = (q.get("s") || 300) + "px";
+</script>
+</body>
+</html>

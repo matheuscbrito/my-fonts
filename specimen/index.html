@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Senna Display Specimen</title>
+<style>
+  :root { --ink: #16130f; --paper: #f6f1ea; --muted: #8a8177; --rule: #e2d9cd; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font-family: system-ui, sans-serif; padding: 40px 48px 80px; }
+  .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+           color: var(--muted); margin: 48px 0 12px; border-top: 1px solid var(--rule); padding-top: 12px; }
+  .f { font-family: "Senna Display", serif; }
+  .hero { font-size: min(168px, 17vw); line-height: 1; letter-spacing: -0.01em; }
+  .big { font-size: min(96px, 10vw); line-height: 1.05; }
+  .glyphs { display: flex; flex-wrap: wrap; gap: 0; }
+  .glyphs span { font-size: 120px; line-height: 1; width: 150px; height: 190px; display: flex;
+                 align-items: center; justify-content: center; border: 1px solid var(--rule);
+                 margin: -1px 0 0 -1px;
+                 background-image: linear-gradient(var(--rule) 1px, transparent 1px);
+                 background-size: 100% 190px; }
+  .water div { white-space: nowrap; overflow: hidden; line-height: 1.15; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: min(72px, 8vw); }
+  .compare small { display: block; font: 12px system-ui; color: var(--muted); }
+</style>
+<script>
+  // Load the font with a cache-buster so every rebuild shows up on refresh.
+  new FontFace("Senna Display", `url(../dist/SennaDisplay-Regular.woff2?v=${Date.now()})`)
+    .load().then(f => document.fonts.add(f));
+</script>
+</head>
+<body>
+  <div class="label">Hero</div>
+  <div class="f hero">Hello modern</div>
+
+  <div class="label">Words</div>
+  <div class="f big">bold ideas, fine lines.<br>The epic opener.<br>HOLE FILE ELITE</div>
+
+  <div class="label">Glyph set</div>
+  <div class="f glyphs" id="grid"></div>
+
+  <div class="label">Waterfall</div>
+  <div class="f water">
+    <div style="font-size:120px">Home of noble ideas</div>
+    <div style="font-size:72px">Home of noble ideas, pure lines.</div>
+    <div style="font-size:48px">Home of noble ideas, pure lines, deep color.</div>
+    <div style="font-size:32px">Home of noble ideas, pure lines, deep color, Hello there.</div>
+    <div style="font-size:20px">Home of noble ideas, pure lines, deep color, Hello there. Bloom, rule, model, lime.</div>
+  </div>
+
+  <div class="label">Spacing strings</div>
+  <div class="f big">nnonnoonnooo HHOHHOOHHOOO<br>nhnmnunlninrn obodopoqoeoco</div>
+
+<script>
+  const set = "HIOLEFT nhmulirocedbpq.,";
+  document.getElementById("grid").innerHTML =
+    [...set].filter(c => c !== " ").map(c => `<span>${c}</span>`).join("");
+</script>
+</body>
+</html>

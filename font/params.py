@@ -1,0 +1,60 @@
+"""Shared design parameters. Every glyph is built from these numbers,
+so changing one here changes the whole typeface.
+
+Units are font units on a 1000-unit em.
+"""
+import math
+
+FAMILY = "Senna Display"  # the typeface name, rename any time
+STYLE = "Regular"
+VERSION = "0.1"
+UPM = 1000
+
+# Vertical metrics
+CAP = 680          # cap height
+XH = 476           # x-height (large, for headline legibility)
+ASC = 740          # lowercase ascenders rise above caps, an elegant touch
+DESC = -230
+OV = 11            # overshoot of round lowercase shapes
+CAP_OV = 13        # overshoot of round capitals
+
+# Stroke contrast: heavy stems against needle-thin hairlines
+STEM = 106         # lowercase vertical stem
+CAP_STEM = 114     # capital vertical stem
+HAIR = 11          # lowercase hairline
+CAP_HAIR = 13      # capital hairline (crossbars, arms)
+
+# Serifs (flared diagonal wedges, cut like a broad-nib pen)
+HEAD = 92          # lowercase head serif reach to the left
+HEAD_SLOPE = 74    # drop of the head serif's top edge
+# The pen angle comes from the head wedge; foot serifs and spurs reuse it,
+# so every diagonal in the face shares one slope (about 20 degrees).
+PEN = math.atan2(HEAD_SLOPE, STEM + HEAD)
+SERIF = 56         # lowercase foot serif reach beyond the stem
+SERIF_TIP = 4      # thickness at the serif's tip
+BRACKET = round(SERIF_TIP + SERIF * math.tan(PEN) * 1.15)  # flank height at the stem
+CAP_SERIF = 64
+CAP_SERIF_TIP = 5
+CAP_BRACKET = round(CAP_SERIF_TIP + CAP_SERIF * math.tan(PEN) * 1.15)
+# Crossbars rise at the pen angle and swell toward their ends
+BAR_FLARE = 44     # extra thickness at the left end of a bar
+BAR_TIP = 88       # extra thickness at the right tip, the expressive end
+BAR_FLARE_LEN = 150  # how far in from the end the swelling starts
+
+# Arches (n, m, h, u)
+ARCH_THIN = 17     # thickness at the top of the arch
+N_COUNTER = 230    # white space inside n
+M_COUNTER = 198    # white space inside each half of m
+
+# Round shapes
+O_THIN = 13        # thinnest point of bowls
+STRESS = 0         # tilt of the stress axis in degrees (0 = vertical, negative leans right)
+K_OUT = 0.5523     # curve fullness of outer contours (0.5523 = true ellipse, geometric)
+K_IN = 0.5523      # inner contours match, keeping counters pure ellipses
+
+# Spacing, measured from the outermost ink (serif tips included)
+SB_STRAIGHT = 20
+SB_ROUND = 30
+CAP_SB_STRAIGHT = 26
+CAP_SB_ROUND = 38
+SPACE = 220

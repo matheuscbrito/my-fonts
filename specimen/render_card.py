@@ -1,4 +1,4 @@
-"""Render specimen/readme-card.html to docs/senna-display.png with headless Chrome."""
+"""Render specimen/readme-card.html to docs/senna-display-v2.png with headless Chrome."""
 import os
 import subprocess
 

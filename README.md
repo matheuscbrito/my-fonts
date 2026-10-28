@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/senna-display.png" alt="Senna Display specimen: the word Senna set large in a high-contrast serif, with the full alphabet and figures below" width="100%">
+  <img src="docs/senna-display-v2.png" alt="Senna Display specimen: the word Senna set large in a high-contrast serif, with the full alphabet and figures below" width="100%">
 </p>
 
 # Senna Display
@@ -31,7 +31,7 @@ faces on tako.ai, but every outline here is original.
 - `font/kerning.py`: optical kerning measured from the outlines (band-by-band closeness, with a collision guard), written to the `kern` feature at build time. `STRENGTH` and `LIMIT` set how hard it pulls.
 - `build.py`: draws every glyph and writes `dist/*.otf` and `dist/*.woff2`.
 - `specimen/index.html`: specimen page.
-- `specimen/readme-card.html`: the image at the top of this README; `python3 specimen/render_card.py` re-renders it to `docs/senna-display.png` with headless Chrome.
+- `specimen/readme-card.html`: the image at the top of this README; `python3 specimen/render_card.py` re-renders it to `docs/senna-display-v2.png` with headless Chrome.
 - `specimen/proof.html?t=nohO&s=300`: big close-up proof.
 
 ## Build and preview

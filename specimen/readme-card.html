@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Source for docs/senna-display.png. Render with:
+     .venv/bin/python specimen/render_card.py -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: "Senna Display";
+    src: url("../dist/SennaDisplay-Regular.woff2") format("woff2");
+  }
+  :root { --paper: #f4f6f8; --ink: #17191c; --soft: #858a92; --rule: #dde1e6; }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1600px; height: 900px; background: var(--paper); color: var(--ink); }
+  body { padding: 64px 80px; display: grid; grid-template-rows: auto 1fr auto; }
+  .senna { font-family: "Senna Display", serif; font-kerning: normal; }
+  .meta { font: 500 15px/1 "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: .14em;
+          text-transform: uppercase; color: var(--soft); display: flex; justify-content: space-between;
+          padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+  .hero { padding-bottom: 50px; display: flex; align-items: end; }
+  .name { font-size: 360px; line-height: .78; letter-spacing: -.02em; margin-left: -10px; padding-bottom: 28px; }
+  .tag { font-size: 54px; line-height: 1.1; padding: 30px 0 34px; border-top: 1px solid var(--rule);
+         display: flex; justify-content: space-between; align-items: baseline; }
+  .tag span { color: var(--soft); }
+  .sets { border-top: 1px solid var(--rule); padding-top: 26px; display: grid; gap: 6px; }
+  .sets div { font-size: 46px; line-height: 1.15; letter-spacing: .01em; }
+</style>
+</head>
+<body>
+  <div class="meta"><span>Senna Display</span><span>Regular · v0.5</span><span>Serifed · Geometric · Elegant</span></div>
+  <div class="hero">
+    <div class="name senna">Senna</div>
+  </div>
+  <div>
+    <div class="tag senna">Toda letra tem sua personalidade. <span>No. 1</span></div>
+    <div class="sets senna">
+      <div>ABCDEFGHIJKLMNOPQRSTUVWXYZ</div>
+      <div>abcdefghijklmnopqrstuvwxyz 0123456789</div>
+    </div>
+  </div>
+</body>
+</html>

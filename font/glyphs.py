@@ -1019,8 +1019,9 @@ def two():
     q_in, q_out = (0, FIG_BAR), (CAP_DIAG * DIAG_TAPER[1], FIG_BAR)
     t_out = _touch(cx, cy, rx, ry, q_out, lambda p: p[0])
     t_in = _touch(cx + dxi, cy, rxi, ryi, q_in, lambda p: p[0])
-    l_in = (q_in[0] + (t_in[0] - q_in[0]) * (cy - q_in[1]) / (t_in[1] - q_in[1]), cy)
-    keep = contour(q_in, q_out, t_out, (cx + rx + 10, t_out[1]), (cx + rx + 10, cy), l_in)
+    # Keep the ink between the counter and the tangent: the region runs
+    # from the base up the tangents and back down through the counter.
+    keep = contour(q_in, q_out, t_out, (cx + rx + 10, t_out[1]), (cx + rx + 10, cy), (cx, cy), t_in)
     low = Glyph().add(outer, contour(q_in, q_out, t_out, t_in)).cut(counter).clip(keep)
     return Glyph().add(top, low, rect(0, 0, w, FIG_BAR), arm_serif(w, 0, FIG_BAR, 150))
 
@@ -1032,7 +1033,7 @@ def _lower_bowl(w, rx, ry, heavy=CAP_ROUND, keep_from=None):
     g = _hook_ring(cx, cy, rx, ry, heavy, 52, "right")
     keep_from = cx - 40 if keep_from is None else keep_from
     g.clip(Glyph().add(rect(keep_from, -100, w + 10, CAP + 100), rect(cx - rx - 10, -100, cx + 10, cy)))
-    _tear_end(g, cx, cy, rx, ry, cy, 50, "bottom_left")
+    _tear_end(g, cx, cy, rx, ry, cy, 50, "bottom_left", cut=False)  # already clipped at cy
     return g, cx, cy
 
 
@@ -1043,14 +1044,26 @@ def three():
     # where it joins the bowl the waist comes to a sharp point.
     w = 460
     rxl, ryl = 225, 196
-    lower, cxl, cyl = _lower_bowl(w, rxl, ryl)
+    lower, cxl, cyl = _lower_bowl(w, rxl, ryl, keep_from=0)
     waist = cyl + ryl
     xr = w - 30
     wt, wb = CAP_DIAG * 0.72, CAP_DIAG * 1.02
-    diag_ = Glyph().add(taper_diag((xr - wt / 2, CAP - FIG_BAR), (cxl - 70, waist - 70), wt, wb))
     full = _hook_ring(cxl, cyl, rxl, ryl, CAP_ROUND, 52, "right")
     counter = Glyph().add(ellipse(cxl, cyl, rxl - 1, ryl - 1)).cut(full)
-    diag_.cut(counter).clip(Glyph().add(ellipse(cxl, cyl, rxl, ryl), rect(-100, waist - 8, w + 100, CAP)))
+    # The diagonal's left edge runs from the bar down until it meets the
+    # counter; that meeting is the waist's point.
+    top_l = (xr - wt, CAP - FIG_BAR)
+    bot_c = (cxl - 70, waist - 70)
+    bot_l = (bot_c[0] - wb / 2, bot_c[1])
+    t = 0.0
+    while t < 1 and not counter.path.contains((top_l[0] + (bot_l[0] - top_l[0]) * t,
+                                               top_l[1] + (bot_l[1] - top_l[1]) * t)):
+        t += 0.002
+    tip = (top_l[0] + (bot_l[0] - top_l[0]) * t, top_l[1] + (bot_l[1] - top_l[1]) * t)
+    diag_ = Glyph().add(contour(top_l, (xr, CAP - FIG_BAR), (bot_c[0] + wb / 2, bot_c[1]), tip)).cut(counter)
+    # The bowl's upper arc ends at the waist: nothing of it shows left of
+    # the tip or left of the diagonal's edge.
+    lower.cut(rect(-100, cyl, tip[0], CAP), Glyph().add(half_plane(tip, top_l)).clip(rect(-100, cyl, w + 100, CAP)))
     bar = rect(40, CAP - FIG_BAR, xr, CAP)
     left = arm_serif(xr, 0, FIG_BAR, 120).mirror_y(CAP / 2).mirror_x((40 + xr) / 2)
     return Glyph().add(lower, diag_, bar, left)
@@ -1065,12 +1078,19 @@ def four():
     # A hairline written down from the top of the stem to the bar's left end;
     # the bar starts there as a hairline and ends past the stem in a tip.
     hw = CAP_THIN_STEM * 1.4
-    hair = flared_stroke((hw / 2, yb), (x0 + hw / 2, CAP), hw)
-    bar = pen_bar(0, x1 + 40, yb, FIG_BAR, angle=0, flare=(0, BAR_TIP * 0.45), flare_len=90)
-    # The stem's top is cut on the pen angle, highest where the hairline
-    # arrives, so the two meet in a sharp apex.
     k = math.tan(PEN)
-    stem = contour((x0, CAP), (x1, CAP - CAP_STEM * k), (x1, 0), (x0, 0))
+    # The hairline's left edge runs from the bar's left end up to the apex
+    # at the stem's top-left corner; the stem's top falls away from there on
+    # the pen angle, and the hairline is cut on the same line.
+    foot, apex = (0, yb), (x0, CAP)
+    dx = (apex[0] - foot[0]) / (apex[1] - foot[1])
+    # Right edge: the left edge moved hw over; it meets the slope where
+    # foot_x + hw + dx (y - yb) = x0 + (CAP - y) / k.
+    y_r = (x0 + CAP / k - foot[0] - hw + dx * yb) / (dx + 1 / k)
+    hair = contour(foot, apex, (foot[0] + hw + dx * (y_r - yb), y_r), (foot[0] + hw, yb))
+    bar = Glyph().add(pen_bar(0, x1 + 40, yb, FIG_BAR, angle=0, flare=(0, BAR_TIP * 0.45), flare_len=90))
+    bar.clip(half_plane(apex, (foot[0] - dx * FIG_BAR * 2, yb - FIG_BAR * 2)))  # nothing left of the hairline
+    stem = contour(apex, (x1, CAP - CAP_STEM * k), (x1, 0), (x0, 0))
     return Glyph().add(hair, bar, stem, cap_foot(x0, x1))
 
 
@@ -1081,23 +1101,29 @@ def five():
     xn = w - 2 * rx + rx * 0.22  # the neck's left edge
     nw = CAP_STEM * 0.8          # a vertical, so it keeps one weight
     lower, cx, cy = _lower_bowl(w, rx, ry, keep_from=xn)
-    # The neck runs from the top bar straight down and sits on the bowl's
-    # shoulder, its foot following the bowl's outer edge.
-
-    def y_out(x):
-        return cy + ry * math.sqrt(max(0, 1 - ((x - cx) / rx) ** 2)) - 3
-
-    neck = contour((xn, y_out(xn)), (xn + nw / 2, y_out(xn + nw / 2)), (xn + nw, y_out(xn + nw)),
-                   (xn + nw, CAP), (xn, CAP))
+    # The neck runs from the top bar straight down through the bowl's
+    # shoulder and stands on a flat foot level with the bowl's inner edge;
+    # below it the bowl is open.
+    x_r = xn + nw
+    y = cy + ry
+    while y > cy and not lower.path.contains((x_r + 2, y)):
+        y -= 1
+    while y > cy and lower.path.contains((x_r + 2, y)):
+        y -= 1
+    foot = y + 1
+    lower.cut(rect(-100, cy - 1, x_r, foot))
+    neck = rect(xn, foot, x_r, CAP)
     bar = Glyph().add(rect(xn, CAP - FIG_BAR, w - 10, CAP), arm_serif(w - 10, 0, FIG_BAR, 130).mirror_y(CAP / 2))
     return Glyph().add(lower, neck, bar)
 
 
 def _fill_notch(g, x0, x1, y0, y1, width, step=2):
-    """Fill a thread-thin gap where two strokes part slowly, from y0 up
-    until the gap is `width` wide, so the counter ends crisply instead of
-    in a hairline. Scans rows between x0 and x1 for ink, gap, ink."""
-    left, right = [], []
+    """Fill a thread-thin gap where two strokes part slowly, so the counter
+    ends crisply instead of in a hairline: from y0 up until the gap is
+    `width` wide, the fill's top then cut on the pen angle. Scans rows
+    between x0 and x1 for ink, gap, ink."""
+    k = math.tan(PEN)
+    left, right, line = [], [], None
     for y in range(int(y0), int(y1), step):
         row = [g.path.contains((x + 0.5, y)) for x in range(int(x0), int(x1))]
         runs, x = [], 0
@@ -1112,12 +1138,18 @@ def _fill_notch(g, x0, x1, y0, y1, width, step=2):
                 break
             continue
         a, b = gaps[0]
-        if b - a >= width:
+        xa, xb = x0 + a - 1, x0 + b + 1
+        if line is None and b - a >= width:
+            line = (xa, y)  # the cut starts here on the left and rises to the right
+        if line is None:
+            left.append((xa, y))
+            right.append((xb, y))
+        elif y <= line[1] + (xb - line[0]) * k:
+            right.append((xb, y))
+        else:
             break
-        left.append((x0 + a - 1, y))
-        right.append((x0 + b + 1, y))
-    if len(left) > 1:
-        g.add(contour(*left, *reversed(right)))
+    if line and left:
+        g.add(contour(*left, line, *reversed(right)))
     return g
 
 
@@ -1156,10 +1188,10 @@ def seven():
     w = 470
     wt, wb = CAP_DIAG * DIAG_TAPER[0], CAP_DIAG * DIAG_TAPER[1]
     left = arm_serif(w, 0, FIG_BAR, 130).mirror_y(CAP / 2).mirror_x(w / 2)
-    return Glyph().add(
-        rect(0, CAP - FIG_BAR, w, CAP), left,
-        taper_diag((w - wt / 2, CAP - FIG_BAR), (w * 0.36, 0), wt, wb),
-    )
+    top_r, bot_r = (w, CAP), (w * 0.36 + wb / 2, 0)
+    # The bar ends along the diagonal's right edge, so the corner is one point.
+    bar = Glyph().add(rect(0, CAP - FIG_BAR, w, CAP)).clip(half_plane(bot_r, top_r))
+    return Glyph().add(bar, left, taper_diag((w - wt / 2, CAP), (w * 0.36, 0), wt, wb))
 
 
 @glyph("eight", 0x38, CAP_SB_ROUND, CAP_SB_ROUND)

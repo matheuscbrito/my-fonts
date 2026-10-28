@@ -5,7 +5,7 @@ import subprocess
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 SRC = os.path.join(ROOT, "specimen", "readme-card.html")
-OUT = os.path.join(ROOT, "docs", "senna-display.png")
+OUT = os.path.join(ROOT, "docs", "senna-display-v2.png")
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 subprocess.run([

@@ -66,6 +66,7 @@ h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; 
 - Lowercase: the full alphabet, `a` to `z`.
 - Capitals: the full alphabet, `A` to `Z`.
 - Figures: lining `0` to `9` at cap height, built from the capitals' parts.
+- Portuguese: `á à â ã é ê í ó ô õ ú ü ç` and their capitals.
 - Punctuation: `. ,` and space.
 
 ## How it is drawn

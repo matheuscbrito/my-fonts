@@ -1,11 +1,28 @@
+<p align="center">
+  <img src="docs/senna-display.png" alt="Senna Display specimen: the word Senna set large in a high-contrast serif, with the full alphabet and figures below" width="100%">
+</p>
+
 # Senna Display
 
-A personal display serif for headlines, defined entirely in code. The feel
-(very high contrast, hard straight-edged wedge serifs, large x-height, tight
-spacing) is inspired by geometric display serifs like the headline faces on
-tako.ai, but every outline here is original.
+**Senna Display** is my first typeface: a serifed, geometric and elegant
+display face made for headlines. It is called Senna because it has a lot of
+personality: hairlines that almost disappear next to heavy stems, hard
+wedge serifs, and stroke ends that swell into sharp pressure wedges.
 
-## Layout
+- **Serifed.** Triangular wedge serifs and straight diagonal stem cuts, no
+  brackets, no soft corners.
+- **Geometric.** Every curve is a true ellipse; everything else is a straight
+  line. Bowls, arches and spines are built from the same few parts.
+- **Elegant.** Very high contrast, a large x-height and tight spacing, so it
+  reads best big: titles, covers, posters, wordmarks.
+
+The whole font is defined in Python, glyph by glyph, and built into OTF and
+WOFF2. The feel is inspired by geometric display serifs like the headline
+faces on tako.ai, but every outline here is original.
+
+> **Status:** v0.5, one weight (Regular). A variable version is planned.
+
+## Project layout
 
 - `font/params.py`: the shared design settings (metrics, stem weights, serif shape, spacing). Start here.
 - `font/draw.py`: drawing primitives (contours, ellipses, boolean union/cut).
@@ -13,7 +30,9 @@ tako.ai, but every outline here is original.
 - `font/glyphs.py`: one function per glyph.
 - `font/kerning.py`: optical kerning measured from the outlines (band-by-band closeness, with a collision guard), written to the `kern` feature at build time. `STRENGTH` and `LIMIT` set how hard it pulls.
 - `build.py`: draws every glyph and writes `dist/*.otf` and `dist/*.woff2`.
-- `specimen/index.html`: specimen page. `specimen/proof.html?t=nohO&s=300`: big close-up proof.
+- `specimen/index.html`: specimen page.
+- `specimen/readme-card.html`: the image at the top of this README; `python3 specimen/render_card.py` re-renders it to `docs/senna-display.png` with headless Chrome.
+- `specimen/proof.html?t=nohO&s=300`: big close-up proof.
 
 ## Build and preview
 
@@ -24,6 +43,12 @@ python3 -m http.server 8765
 ```
 
 Then open http://127.0.0.1:8765/specimen/.
+
+After a rebuild, refresh the README image:
+
+```bash
+python3 specimen/render_card.py
+```
 
 ## Use on a website
 
@@ -36,12 +61,14 @@ Then open http://127.0.0.1:8765/specimen/.
 h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; }
 ```
 
-## Current glyph set (v0.5)
+## Glyph set (v0.5)
 
 - Lowercase: the full alphabet, `a` to `z`.
 - Capitals: the full alphabet, `A` to `Z`.
 - Figures: lining `0` to `9` at cap height, built from the capitals' parts.
 - Punctuation: `. ,` and space.
+
+## How it is drawn
 
 The strokes follow a brush: each one starts thin and ends with pressure,
 except straight vertical stems, which keep one weight. Curves are true

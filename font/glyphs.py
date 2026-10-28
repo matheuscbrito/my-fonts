@@ -1158,18 +1158,22 @@ def _six():
     cx, rx = w / 2, w / 2 - 10
     ryb = 212
     cyb = ryb - CAP_OV
-    bowl_ = ring(cx, cyb, rx, ryb, rx - CAP_ROUND * 0.95, thin=CAP_BOWL_THIN)
-    # The stroke rises from the bowl's left side, its widest point shared
-    # with the bowl's so the edge runs on, and ends at the top right in a
-    # wedge.
-    ry = CAP + CAP_OV - cyb
-    arc = _hook_ring(cx, cyb, rx, ry, CAP_ROUND * 0.95 - 12, 40, "left")  # inside the bowl's side
-    arc.clip(rect(cx - rx - 10, cyb, cx + rx + 10, CAP + 100))
-    yt = cyb + ry * 0.6
-    arc.cut(rect(cx + 20, cyb - 10, cx + rx + 10, yt))
-    _tear_end(arc, cx, cyb, rx, ry, yt, 50, cut=False)
-    g = Glyph().add(bowl_, arc)
-    return _fill_notch(g, cx - rx, cx - 40, cyb, cyb + 300, 16), w
+    heavy = CAP_ROUND * 0.95
+    bowl_ = ring(cx, cyb, rx, ryb, rx - heavy, thin=CAP_BOWL_THIN)
+    # The stroke rises straight up from the bowl's widest point on the left,
+    # then turns over a broad arch as wide as the bowl, ending at the right
+    # in a wedge. Both edges run on: the straight part has the bowl's left
+    # weight, and the arch is centred over it with the same width.
+    cya = CAP * 0.6
+    rya = CAP + CAP_OV - cya
+    stem = rect(cx - rx, cyb, cx - rx + heavy, cya + 1)
+    arc = _hook_ring(cx, cya, rx, rya, heavy, 40, "left")
+    arc.clip(rect(cx - rx - 10, cya, cx + rx + 10, CAP + 100))
+    yt = cya + rya * 0.34
+    arc.cut(rect(cx + 20, cya - 10, cx + rx + 10, yt))
+    _tear_end(arc, cx, cya, rx, rya, yt, 50, cut=False)
+    g = Glyph().add(bowl_, stem, arc)
+    return _fill_notch(g, cx - rx, cx - 40, cyb, cya + 100, 16), w
 
 
 @glyph("six", 0x36, CAP_SB_ROUND, CAP_SB_ROUND)

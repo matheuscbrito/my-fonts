@@ -396,7 +396,7 @@ def _s(C, top, rx, ry, W, left, right, hair, tear, fall=None):
 
 @glyph("s", 0x73, SB_ROUND, SB_ROUND)
 def s():
-    return _s((190, XH / 2), XH + OV, 170, 136, 110, 106, 38, O_THIN + 2, 44)
+    return _s((190, XH / 2), XH + OV, 170, 136, STEM + 4, STEM, 38, O_THIN + 2, 44)
 
 
 @glyph("g", 0x67, SB_ROUND, SB_STRAIGHT)
@@ -947,7 +947,7 @@ def B():
 
 @glyph("S", 0x53, CAP_SB_ROUND, CAP_SB_ROUND)
 def S():
-    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, 130, 128, 44, CAP_BOWL_THIN + 2, 52)
+    return _s((260, CAP / 2), CAP + CAP_OV, 238, 188, CAP_STEM + 16, CAP_STEM + 14, 44, CAP_BOWL_THIN + 2, 52)
 
 
 # ------------------------------------------------------------------ figures
@@ -1246,7 +1246,7 @@ def space():
 
 ACC_Y, ACC_H = XH + 104, 166        # lowercase marks: bottom and height
 CAP_ACC_Y, CAP_ACC_H = CAP + 56, 124  # capital marks sit lower and flatter
-ACC_HEAVY = 88                      # heavy end of a mark, measured horizontally
+ACC_HEAVY = round(STEM * 0.83)      # heavy end of a mark, measured horizontally
 
 
 def _acute(cx, y, h, cap=False):

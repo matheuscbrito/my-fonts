@@ -20,19 +20,19 @@ The whole font is defined in Python, glyph by glyph, and built into OTF and
 WOFF2. The feel is inspired by geometric display serifs like the headline
 faces on tako.ai, but every outline here is original.
 
-> **Status:** v0.5, one weight (Regular). A variable version is planned.
+> **Status:** v0.5, two styles: Bold and Medium. A variable version is planned.
 
 ## Project layout
 
-- `font/params.py`: the shared design settings (metrics, stem weights, serif shape, spacing). Start here.
+- `font/params.py`: the shared design settings (metrics, stem weights, serif shape, spacing). Start here. `STYLES` sets each style's stem weights; everything else is shared.
 - `font/draw.py`: drawing primitives (contours, ellipses, boolean union/cut).
 - `font/parts.py`: reusable letter parts (serifs, arches, bowls, pen-angle bars and cuts, the broad-nib `nib_stroke`).
 - `font/glyphs.py`: one function per glyph.
 - `font/kerning.py`: optical kerning measured from the outlines (band-by-band closeness, with a collision guard), written to the `kern` feature at build time. `STRENGTH` and `LIMIT` set how hard it pulls.
-- `build.py`: draws every glyph and writes `dist/*.otf` and `dist/*.woff2`.
+- `build.py`: draws every glyph for each style and writes `dist/SennaDisplay-Bold.*` and `dist/SennaDisplay-Medium.*` (OTF and WOFF2).
 - `specimen/index.html`: specimen page.
 - `specimen/readme-card.html`: the image at the top of this README; `python3 specimen/render_card.py` re-renders it to `docs/senna-display-v2.png` with headless Chrome.
-- `specimen/proof.html?t=nohO&s=300`: big close-up proof.
+- `specimen/proof.html?t=nohO&s=300`: big close-up proof (add `&w=500` for Medium).
 
 ## Build and preview
 
@@ -55,10 +55,18 @@ python3 specimen/render_card.py
 ```css
 @font-face {
   font-family: "Senna Display";
-  src: url("/fonts/SennaDisplay-Regular.woff2") format("woff2");
+  src: url("/fonts/SennaDisplay-Bold.woff2") format("woff2");
+  font-weight: 700;
   font-display: swap;
 }
-h1, h2 { font-family: "Senna Display", Georgia, serif; letter-spacing: -0.01em; }
+@font-face {
+  font-family: "Senna Display";
+  src: url("/fonts/SennaDisplay-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+h1 { font-family: "Senna Display", Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-family: "Senna Display", Georgia, serif; font-weight: 500; }
 ```
 
 ## Glyph set (v0.5)

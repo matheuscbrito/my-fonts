@@ -11,7 +11,12 @@
          font-family: system-ui, sans-serif; padding: 40px 48px 80px; }
   .label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
            color: var(--muted); margin: 48px 0 12px; border-top: 1px solid var(--rule); padding-top: 12px; }
-  .f { font-family: "Senna Display", serif; }
+  .f { font-family: "Senna Display", serif; font-weight: var(--weight, 700); }
+  .styles { position: sticky; top: 0; z-index: 1; display: flex; gap: 8px; padding: 12px 0;
+            background: var(--paper); font-size: 13px; }
+  .styles button { font: inherit; padding: 6px 14px; border: 1px solid var(--rule); border-radius: 999px;
+                   background: transparent; color: var(--ink); cursor: pointer; }
+  .styles button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   .hero { font-size: min(168px, 17vw); line-height: 1; letter-spacing: -0.01em; }
   .big { font-size: min(96px, 10vw); line-height: 1.05; }
   .glyphs { display: flex; flex-wrap: wrap; gap: 0; }
@@ -25,12 +30,18 @@
   .compare small { display: block; font: 12px system-ui; color: var(--muted); }
 </style>
 <script>
-  // Load the font with a cache-buster so every rebuild shows up on refresh.
-  new FontFace("Senna Display", `url(../dist/SennaDisplay-Regular.woff2?v=${Date.now()})`)
-    .load().then(f => document.fonts.add(f));
+  // Load both styles with a cache-buster so every rebuild shows up on refresh.
+  for (const [style, weight] of [["Bold", 700], ["Medium", 500]])
+    new FontFace("Senna Display", `url(../dist/SennaDisplay-${style}.woff2?v=${Date.now()})`, { weight })
+      .load().then(f => document.fonts.add(f));
 </script>
 </head>
 <body>
+  <div class="styles" id="styles">
+    <button data-weight="700" aria-pressed="true">Bold</button>
+    <button data-weight="500" aria-pressed="false">Medium</button>
+  </div>
+
   <div class="label">Hero</div>
   <div class="f hero">Senna<br>quietly bold</div>
 
@@ -39,6 +50,9 @@
 
   <div class="label">Glyph set</div>
   <div class="f glyphs" id="grid"></div>
+
+  <div class="label">Português</div>
+  <div class="f big">Ação, coração e canção.<br>Você já viu o avô?<br>ÁGUA · ÍNDIO · NÃO HÁ</div>
 
   <div class="label">Waterfall</div>
   <div class="f water">
@@ -53,7 +67,14 @@
   <div class="f big">nnonnoonnooo HHOHHOOHHOOO<br>nanbncndnenfngnhninjnknl<br>nmnonpnqnrnsntnunvnwnxnynz</div>
 
 <script>
-  const set = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789.,";
+  // Switch every specimen line between the two styles.
+  const buttons = document.querySelectorAll("#styles button");
+  buttons.forEach(b => b.addEventListener("click", () => {
+    document.documentElement.style.setProperty("--weight", b.dataset.weight);
+    buttons.forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+  }));
+
+  const set = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789.,ÁÀÂÃÉÊÍÓÔÕÚÜÇáàâãéêíóôõúüç";
   document.getElementById("grid").innerHTML =
     [...set].filter(c => c !== " ").map(c => `<span>${c}</span>`).join("");
 </script>

@@ -6,22 +6,24 @@
 <title>Senna Display Proof</title>
 <style>
   body { margin: 0; background: #fff; color: #000; padding: 20px; }
-  #t { font-family: "Senna Display"; line-height: 1.1; white-space: pre-wrap; }
+  #t { font-family: "Senna Display"; font-weight: 700; line-height: 1.1; white-space: pre-wrap; }
 </style>
 <script>
-  // Load the font with a cache-buster so every rebuild shows up on refresh.
-  new FontFace("Senna Display", `url(../dist/SennaDisplay-Regular.woff2?v=${Date.now()})`)
-    .load().then(f => document.fonts.add(f));
+  // Load both styles with a cache-buster so every rebuild shows up on refresh.
+  for (const [style, weight] of [["Bold", 700], ["Medium", 500]])
+    new FontFace("Senna Display", `url(../dist/SennaDisplay-${style}.woff2?v=${Date.now()})`, { weight })
+      .load().then(f => document.fonts.add(f));
 </script>
 </head>
 <body>
-<!-- Big close-up proof: proof.html?t=nohO&s=300 -->
+<!-- Big close-up proof: proof.html?t=nohO&s=300, add &w=500 for Medium -->
 <div id="t"></div>
 <script>
   const q = new URLSearchParams(location.search);
   const el = document.getElementById("t");
   el.textContent = q.get("t") || "nohO";
   el.style.fontSize = (q.get("s") || 300) + "px";
+  el.style.fontWeight = q.get("w") || 700;
 </script>
 </body>
 </html>

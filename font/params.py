@@ -4,9 +4,14 @@ so changing one here changes the whole typeface.
 Units are font units on a 1000-unit em.
 """
 import math
+import os
 
 FAMILY = "Senna Display"  # the typeface name, rename any time
-STYLE = "Regular"
+# Each style sets the weight of the heavy strokes (lowercase stem, capital
+# stem) and its OS/2 weight class. Hairlines, serifs and the skeleton stay
+# the same, so a lighter style keeps the face's contrast and shapes.
+STYLES = {"Bold": (106, 114, 700), "Medium": (84, 90, 500)}
+STYLE = os.environ.get("SENNA_STYLE", "Bold")  # build.py sets this per style
 VERSION = "0.5"
 UPM = 1000
 
@@ -19,8 +24,7 @@ OV = 11            # overshoot of round lowercase shapes
 CAP_OV = 13        # overshoot of round capitals
 
 # Stroke contrast: heavy stems against needle-thin hairlines, very high
-STEM = 106         # lowercase vertical stem
-CAP_STEM = 114     # capital vertical stem
+STEM, CAP_STEM, WEIGHT_CLASS = STYLES[STYLE]  # lowercase and capital vertical stems
 HAIR = 9           # lowercase hairline (serif tips and fine details)
 CAP_HAIR = 10      # capital hairline
 # The thin strokes that carry a letter, kept even across the alphabet

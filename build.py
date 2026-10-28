@@ -35,15 +35,20 @@ def build():
     charstrings = {}
     metrics = {}
     placed = {}  # name -> (outline in place, advance), for kerning
+    y_min, y_max = P.DESC - 40, P.ASC + 60  # ink extent, so Windows clips nothing
 
     w, lsb, cs = notdef()
     charstrings[".notdef"] = cs
     metrics[".notdef"] = (w, lsb)
 
     for name, (uni, lsb, rsb, draw) in GLYPHS.items():
-        path = draw().drop_specks().path
+        g = draw().drop_specks()
+        path = g.path
         if path.bounds and path.bounds != (0, 0, 0, 0):
-            x_min, _, x_max, _ = path.bounds
+            # Accented letters keep their base letter's extent (Glyph.box).
+            x_min, x_max = getattr(g, "box", None) or (path.bounds[0], path.bounds[2])
+            y_min = min(y_min, path.bounds[1])
+            y_max = max(y_max, path.bounds[3])
             width = round(x_max - x_min + lsb + rsb)
             pen = T2CharStringPen(width, None)
             path.draw(TransformPen(pen, (1, 0, 0, 1, lsb - x_min, 0)))
@@ -76,7 +81,7 @@ def build():
     fb.setupOS2(
         version=4,
         sTypoAscender=P.ASC, sTypoDescender=P.DESC, sTypoLineGap=200,
-        usWinAscent=P.ASC + 60, usWinDescent=-(P.DESC - 40),
+        usWinAscent=round(y_max), usWinDescent=-round(y_min),
         sxHeight=P.XH, sCapHeight=P.CAP, usWeightClass=400,
         fsSelection=0x40 | 0x80,  # REGULAR, USE_TYPO_METRICS
     )

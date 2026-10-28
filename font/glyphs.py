@@ -10,7 +10,7 @@ from .params import (ARCH_THIN, ASC, BAR_FLARE, BAR_TIP, DIAG_TAPER, CAP, CAP_BR
                      XH, HEAD, HEAD_SLOPE)
 from .parts import (arch, bowl, cap_foot, cap_head, diag, drop, flared_stroke, foot_serif,
                     half_plane, head_serif, intersect, taper_diag, nib_dot, pen_bar,
-                    pen_ellipse, pen_line_y, pen_side, ring, spur, tangent)
+                    pen_ellipse, pen_line_y, pen_side, ring, spur, tangent, var_stroke)
 
 GLYPHS = {}  # name -> (unicode, lsb, rsb, draw function)
 
@@ -1235,3 +1235,119 @@ def comma():
 @glyph("space", 0x20, 0, SPACE)
 def space():
     return Glyph()
+
+
+# ------------------------------------------------------------------ accents
+#
+# Marks for Portuguese, drawn with the same pen: a stroke written down and
+# to the right is heavy, one written up and to the right is a hairline.
+# Accented letters reuse their base glyph's sidebearings (see _accented),
+# so a wide mark may hang over its neighbours, as in í.
+
+ACC_Y, ACC_H = XH + 104, 166        # lowercase marks: bottom and height
+CAP_ACC_Y, CAP_ACC_H = CAP + 56, 124  # capital marks sit lower and flatter
+ACC_HEAVY = 88                      # heavy end of a mark, measured horizontally
+
+
+def _acute(cx, y, h, cap=False):
+    """A wedge rising to the right from a sharp point to a heavy end, cut
+    across at the pen angle."""
+    k = math.tan(PEN)
+    lean = 46 if cap else 40
+    bx, tx, ty = cx - lean, cx + lean, y + h
+    w = ACC_HEAVY / 2 * (1.08 if cap else 1)
+    return contour((bx - 3, y + 2), (bx + 5, y), (tx + w, ty + w * k - 18), (tx - w, ty - w * k))
+
+
+def _grave(cx, y, h, cap=False):
+    return _acute(cx, y, h, cap).mirror_x(cx)
+
+
+def _circumflex(cx, y, h, cap=False):
+    """A hairline rising to a peak and a heavy stroke falling away from it."""
+    half = 118 if cap else 100
+    h = h * (0.82 if cap else 0.86)
+    top = (cx, y + h)
+    g = Glyph().add(
+        diag(top, (cx - half, y), THIN + 10),
+        taper_diag((cx + 12, y + h), (cx + half, y), ACC_HEAVY * 0.95, 22),
+    )
+    # A point at the peak instead of a flat top.
+    return g.clip(contour((cx - half - 40, y - 1), (cx + half + 40, y - 1), (cx + 18, y + h + 34),
+                          (cx - 18, y + h + 26)))
+
+
+def _tilde(cx, y, h, cap=False):
+    """A wave written left to right: hairline ends, heavy where it falls."""
+    half = 124 if cap else 108
+    h = h * (0.5 if cap else 0.56)
+    x0, x1 = cx - half, cx + half
+    mid = (cx, y + h / 2)
+    return var_stroke([
+        ((x0, y + h * 0.12), (x0 + half * 0.24, y + h * 1.12), (cx - half * 0.42, y + h * 1.04), mid),
+        (mid, (cx + half * 0.42, y - h * 0.04), (x1 - half * 0.24, y - h * 0.12), (x1, y + h * 0.88)),
+    ], [THIN, ACC_HEAVY * 0.62, THIN])
+
+
+def _dieresis(cx, y, h, cap=False):
+    gap, size = (100, 112) if cap else (92, 116)
+    cy = y + (40 if cap else 54)
+    return Glyph().add(nib_dot(cx - gap, cy, size), nib_dot(cx + gap, cy, size))
+
+
+def _cedilla(cx, scale=1.0):
+    """A hairline dropping from the bowl into a hook that swells round the
+    right and runs out to a point on the left."""
+    s = scale
+    hook = var_stroke([
+        ((cx, -44 * s), (cx + 52 * s, -46 * s), (cx + 86 * s, -70 * s), (cx + 86 * s, -112 * s)),
+        ((cx + 86 * s, -112 * s), (cx + 86 * s, -162 * s), (cx + 14 * s, -196 * s), (cx - 92 * s, -180 * s)),
+    ], [THIN + 4, 54 * s, 5])
+    return Glyph().add(rect(cx - 8, -50 * s, cx + 8, 30), hook)
+
+
+MARKS = {"acute": _acute, "grave": _grave, "circumflex": _circumflex, "tilde": _tilde,
+         "dieresis": _dieresis}
+
+# How far a mark sits off the centre of its base, where the visual centre
+# is not the middle of the outline.
+ACC_SHIFT = {"a": 12, "u": -8, "E": -24, "U": -8}
+
+
+def _dotless_i():
+    return _stem(0, 0, XH)
+
+
+def _accented(base, mark):
+    """The base letter with a mark centred over it, keeping the base's
+    outline extent so its spacing and kerning carry over."""
+    base_glyph = _dotless_i() if base == "i" else GLYPHS[base][3]()
+    x0, _, x1, _ = base_glyph.path.bounds
+    # The i's head serif reaches left, so its mark centres on the stem.
+    cx = STEM / 2 if base == "i" else (x0 + x1) / 2 + ACC_SHIFT.get(base, 0)
+    if mark == "cedilla":
+        cap = base.isupper()
+        g = Glyph().add(base_glyph, _cedilla(cx + (14 if cap else 8), 1.12 if cap else 1.08))
+    elif base.isupper():
+        g = Glyph().add(base_glyph, MARKS[mark](cx, CAP_ACC_Y, CAP_ACC_H, cap=True))
+    else:
+        g = Glyph().add(base_glyph, MARKS[mark](cx, ACC_Y, ACC_H))
+    g.box = (x0, x1)
+    return g
+
+
+ACCENTED = {
+    "a": {"acute": 0xE1, "grave": 0xE0, "circumflex": 0xE2, "tilde": 0xE3},
+    "e": {"acute": 0xE9, "circumflex": 0xEA},
+    "i": {"acute": 0xED},
+    "o": {"acute": 0xF3, "circumflex": 0xF4, "tilde": 0xF5},
+    "u": {"acute": 0xFA, "dieresis": 0xFC},
+    "c": {"cedilla": 0xE7},
+}
+for _base, _marks in list(ACCENTED.items()):
+    ACCENTED[_base.upper()] = {m: u - 0x20 for m, u in _marks.items()}
+
+for _base, _marks in ACCENTED.items():
+    _uni, _lsb, _rsb, _ = GLYPHS[_base]
+    for _mark, _code in _marks.items():
+        GLYPHS[_base + _mark] = (_code, _lsb, _rsb, lambda b=_base, m=_mark: _accented(b, m))
